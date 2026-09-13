@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>لعبة المستذئب المخصصة</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
+</head>
+<body>
+
+    <div class="phone-frame">
+        <div class="phone-notch"></div>
+        
+        <div class="game-container">
+            <!-- شاشة الإعدادات وإضافة اللاعبين وتحديد الأدوار -->
+            <div id="setup-screen" class="screen active">
+                <div class="app-header">
+                    <h1>المستذئب المخصص 🐺</h1>
+                    <p class="subtitle">أضف اللاعبين وفعل الأدوار المطلوبة</p>
+                </div>
+                
+                <div class="input-group">
+                    <input type="text" id="player-name-input" placeholder="اسم اللاعب..." autocomplete="off">
+                    <button id="add-player-btn">إضافة +</button>
+                </div>
+
+                <div class="players-section">
+                    <h3>اللاعبون المضافون (<span id="player-count">0</span>)</h3>
+                    <div id="players-grid" class="players-grid"></div>
+                </div>
+
+                <!-- أزرار تفعيل/إيقاف الشخصيات المربعة (بما فيها القروي) -->
+                <div class="roles-toggle-box">
+                    <p class="roles-toggle-title">تفعيل/إيقاف الشخصيات:</p>
+                    <div class="roles-grid-buttons">
+                        <button type="button" class="role-toggle-btn active" data-role="werewolf">
+                            <span class="role-icon">🐺</span>
+                            <span class="role-name">مستذئب</span>
+                        </button>
+                        <button type="button" class="role-toggle-btn active" data-role="doctor">
+                            <span class="role-icon">💉</span>
+                            <span class="role-name">دكتور</span>
+                        </button>
+                        <button type="button" class="role-toggle-btn active" data-role="witch">
+                            <span class="role-icon">🧙‍♂️</span>
+                            <span class="role-name">ساحر</span>
+                        </button>
+                        <button type="button" class="role-toggle-btn active" data-role="seer">
+                            <span class="role-icon">🔮</span>
+                            <span class="role-name">عراف</span>
+                        </button>
+                        <button type="button" class="role-toggle-btn active" data-role="villager">
+                            <span class="role-icon">🧑</span>
+                            <span class="role-name">قروي</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 8px;">
+                    <button id="start-game-btn" class="primary-btn" disabled>بدء اللعبة عشوائياً 🎲</button>
+                </div>
+            </div>
+
+            <!-- شاشة كشف الأدوار والليل -->
+            <div id="night-screen" class="screen">
+                <div class="app-header">
+                    <h2 id="night-phase-title">الليل حالك 🌙</h2>
+                    <p class="subtitle">مرر الهاتف بالدور وحافظ على السرية</p>
+                </div>
+                
+                <div class="card night-card">
+                    <div id="role-reveal-container">
+                        <p class="instruction-text">دور اللاعب: <span id="current-turn-player" class="highlight"></span></p>
+                        <div class="hidden-role-box" id="role-box">
+                            <div class="lock-icon">🔒</div>
+                            <p>اضغط هنا لكشف دورك سراً</p>
+                        </div>
+                        <button id="next-turn-btn" class="primary-btn" style="display: none;">التالي (أعط الهاتف للاعب التالي)</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- شاشة الصباح -->
+            <div id="morning-screen" class="screen">
+                <div class="app-header">
+                    <h2>أشرقت الشمس ☀️</h2>
+                    <p class="subtitle">نتائج الليلة الماضية</p>
+                </div>
+                <div class="card morning-card">
+                    <p id="morning-result-text" class="result-text"></p>
+                    <button id="go-to-vote-btn" class="primary-btn">الانتقال للتصويت ⚖️</button>
+                </div>
+            </div>
+
+            <!-- شاشة التصويت النهاري -->
+            <div id="vote-screen" class="screen">
+                <div class="app-header">
+                    <h2>محكمة القرية ⚖️</h2>
+                    <p class="subtitle">التصويت الفردي السري</p>
+                </div>
+                <div class="card vote-card">
+                    <p class="instruction-text">دور اللاعب بالتصويت: <span id="current-voter-name" class="highlight"></span></p>
+                    <div id="vote-action-container">
+                        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 10px;">من تود التصويت ضده لطرده؟</p>
+                        <div id="vote-targets-list" class="targets-grid"></div>
+                        <button id="skip-single-vote-btn" class="secondary-btn" style="margin-top: 8px;">تخطي صوتي</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- شاشة نهاية اللعبة -->
+            <div id="game-over-screen" class="screen">
+                <div class="app-header">
+                    <h2>انتهاء اللعبة 🏆</h2>
+                    <p class="subtitle">نتيجة الصراع</p>
+                </div>
+                <div class="card game-over-card">
+                    <p id="game-over-text" class="result-text" style="font-size: 1.1rem; font-weight: bold;"></p>
+                    <button id="restart-btn" class="primary-btn">لعبة جديدة 🔄</button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="phone-footer-bar"></div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
