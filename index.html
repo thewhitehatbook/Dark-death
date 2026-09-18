@@ -2,128 +2,197 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>لعبة المستذئب المخصصة</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لعبة المستذئب</title>
     <link rel="stylesheet" href="style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
 </head>
 <body>
+    <!-- شاشة تحميل اللعبة -->
+<div id="game-loading-screen" class="game-loading-screen">
+    <div class="loading-background"></div>
 
-    <div class="phone-frame">
-        <div class="phone-notch"></div>
+    <div class="loading-content">
+        <div class="loading-logo">
+            <div class="loading-wolf">🐺</div>
+        </div>
+
+        <h1 class="loading-title">المستذئب</h1>
+        <p class="loading-subtitle">استعد للعبة...</p>
+
+        <div class="loading-progress-box">
+            <div class="loading-progress-track">
+                <div id="loading-progress" class="loading-progress"></div>
+            </div>
+
+            <div class="loading-status">
+                <span id="loading-status-text">جاري تجهيز اللعبة</span>
+                <span id="loading-percent">0%</span>
+            </div>
+        </div>
+
+        <div class="loading-dots">
+            <span></span>
+            <span></span>
+            <span></span>
+        </div>
+    </div>
+</div>
+
+<!-- إشعارات داخل اللعبة -->
+<div id="game-toast-container" class="game-toast-container"></div>
+<!-- نظام الإشعارات داخل اللعبة -->
+<div id="game-toast-container" class="game-toast-container" aria-live="polite"></div>
+
+    <div class="app-container">
         
-        <div class="game-container">
-            <!-- شاشة الإعدادات وإضافة اللاعبين وتحديد الأدوار -->
-            <div id="setup-screen" class="screen active">
-                <div class="app-header">
-                    <h1>المستذئب المخصص 🐺</h1>
-                    <p class="subtitle">أضف اللاعبين وفعل الأدوار المطلوبة</p>
-                </div>
+        <!-- شاشة القائمة الرئيسية -->
+        <div id="main-menu-screen" class="screen active">
+            <div class="card" style="text-align: center;">
+                <h2 style="color: var(--accent-color); margin-bottom: 15px; font-size: 1.15rem; text-shadow: 0 0 10px rgba(234,179,8,0.4);">أدوار القرية</h2>
                 
-                <div class="input-group">
-                    <input type="text" id="player-name-input" placeholder="اسم اللاعب..." autocomplete="off">
-                    <button id="add-player-btn">إضافة +</button>
+                <div class="roles-grid">
+                    <button class="role-toggle-btn active" data-role="werewolf"><span>🐺</span>مستذئب</button>
+                    <button class="role-toggle-btn active" data-role="doctor"><span>💉</span>دكتور</button>
+                    <button class="role-toggle-btn active" data-role="witch"><span>🧙‍♂️</span>ساحر</button>
+                    <button class="role-toggle-btn active" data-role="seer"><span>🔮</span>عراف</button>
+                    <button class="role-toggle-btn active" data-role="villager"><span>🧑</span>قروي</button>
                 </div>
 
-                <div class="players-section">
-                    <h3>اللاعبون المضافون (<span id="player-count">0</span>)</h3>
-                    <div id="players-grid" class="players-grid"></div>
-                </div>
-
-                <!-- أزرار تفعيل/إيقاف الشخصيات المربعة (بما فيها القروي) -->
-                <div class="roles-toggle-box">
-                    <p class="roles-toggle-title">تفعيل/إيقاف الشخصيات:</p>
-                    <div class="roles-grid-buttons">
-                        <button type="button" class="role-toggle-btn active" data-role="werewolf">
-                            <span class="role-icon">🐺</span>
-                            <span class="role-name">مستذئب</span>
-                        </button>
-                        <button type="button" class="role-toggle-btn active" data-role="doctor">
-                            <span class="role-icon">💉</span>
-                            <span class="role-name">دكتور</span>
-                        </button>
-                        <button type="button" class="role-toggle-btn active" data-role="witch">
-                            <span class="role-icon">🧙‍♂️</span>
-                            <span class="role-name">ساحر</span>
-                        </button>
-                        <button type="button" class="role-toggle-btn active" data-role="seer">
-                            <span class="role-icon">🔮</span>
-                            <span class="role-name">عراف</span>
-                        </button>
-                        <button type="button" class="role-toggle-btn active" data-role="villager">
-                            <span class="role-icon">🧑</span>
-                            <span class="role-name">قروي</span>
-                        </button>
-                    </div>
-                </div>
-
-                <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 8px;">
-                    <button id="start-game-btn" class="primary-btn" disabled>بدء اللعبة عشوائياً 🎲</button>
-                </div>
+                <button id="start-game-btn" class="primary-btn" disabled style="margin-top: 10px;">بدء اللعبة 🚀</button>
             </div>
+        </div>
 
-            <!-- شاشة كشف الأدوار والليل -->
-            <div id="night-screen" class="screen">
-                <div class="app-header">
-                    <h2 id="night-phase-title">الليل حالك 🌙</h2>
-                    <p class="subtitle">مرر الهاتف بالدور وحافظ على السرية</p>
+        <!-- شاشة قائمة السكان -->
+        <div id="players-list-screen" class="screen">
+            <div class="card">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                    <h3 style="font-size: 1rem; margin: 0; color: var(--accent-color);">السكان المضافون</h3>
+                    <span style="font-size: 0.8rem; background: var(--bg-color); padding: 4px 10px; border-radius: 20px; border: 1px solid var(--border-color);">العدد: <b id="player-count" style="color: var(--accent-color);">0</b></span>
                 </div>
-                
-                <div class="card night-card">
-                    <div id="role-reveal-container">
-                        <p class="instruction-text">دور اللاعب: <span id="current-turn-player" class="highlight"></span></p>
-                        <div class="hidden-role-box" id="role-box">
-                            <div class="lock-icon">🔒</div>
-                            <p>اضغط هنا لكشف دورك سراً</p>
-                        </div>
-                        <button id="next-turn-btn" class="primary-btn" style="display: none;">التالي (أعط الهاتف للاعب التالي)</button>
-                    </div>
-                </div>
-            </div>
 
-            <!-- شاشة الصباح -->
-            <div id="morning-screen" class="screen">
-                <div class="app-header">
-                    <h2>أشرقت الشمس ☀️</h2>
-                    <p class="subtitle">نتائج الليلة الماضية</p>
+                <div style="display: flex; gap: 8px; margin-bottom: 12px;">
+                    <input type="text" id="player-name-input" placeholder="اكتب اسم اللاعب..." style="flex: 1;">
+                    <button id="add-player-btn" class="primary-btn" style="width: auto; padding: 0 18px;">إضافة</button>
                 </div>
-                <div class="card morning-card">
-                    <p id="morning-result-text" class="result-text"></p>
-                    <button id="go-to-vote-btn" class="primary-btn">الانتقال للتصويت ⚖️</button>
-                </div>
-            </div>
 
-            <!-- شاشة التصويت النهاري -->
-            <div id="vote-screen" class="screen">
-                <div class="app-header">
-                    <h2>محكمة القرية ⚖️</h2>
-                    <p class="subtitle">التصويت الفردي السري</p>
-                </div>
-                <div class="card vote-card">
-                    <p class="instruction-text">دور اللاعب بالتصويت: <span id="current-voter-name" class="highlight"></span></p>
-                    <div id="vote-action-container">
-                        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 10px;">من تود التصويت ضده لطرده؟</p>
-                        <div id="vote-targets-list" class="targets-grid"></div>
-                        <button id="skip-single-vote-btn" class="secondary-btn" style="margin-top: 8px;">تخطي صوتي</button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- شاشة نهاية اللعبة -->
-            <div id="game-over-screen" class="screen">
-                <div class="app-header">
-                    <h2>انتهاء اللعبة 🏆</h2>
-                    <p class="subtitle">نتيجة الصراع</p>
-                </div>
-                <div class="card game-over-card">
-                    <p id="game-over-text" class="result-text" style="font-size: 1.1rem; font-weight: bold;"></p>
-                    <button id="restart-btn" class="primary-btn">لعبة جديدة 🔄</button>
+                <div id="full-players-list" style="max-height: 260px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px;">
                 </div>
             </div>
         </div>
-        
-        <div class="phone-footer-bar"></div>
+
+        <!-- شاشة سجل المباريات -->
+        <div id="match-history-screen" class="screen">
+            <div class="card">
+                <h3 style="margin-bottom: 12px; font-size: 1rem; color: var(--accent-color);">سجل النتائج</h3>
+                <div id="history-list" style="display: flex; flex-direction: column; gap: 8px; max-height: 300px; overflow-y: auto;">
+                    <p style="text-align: center; color: var(--text-muted); font-size: 0.85rem;">لا توجد مباريات مسجلة حتى الآن.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- شاشة القوانين -->
+        <div id="rules-screen" class="screen">
+            <div class="card">
+                <h3 style="margin-bottom: 10px; font-size: 1rem; color: var(--accent-color);">قواعد اللعبة</h3>
+                <p style="font-size: 0.85rem; line-height: 1.6; color: var(--text-muted);">
+                    1. وزع الأدوار وتأكد من اختيار السكان.<br>
+                    2. يستيقظ المستذئب لاختيار ضحية ليلاً.<br>
+                    3. يحاول الدكتور حماية شخص معين.<br>
+                    4. يكشف العراف هوية أحد اللاعبين.<br>
+                    5. في النهار يتم التصويت وطرد المشكوك فيهم.
+                </p>
+            </div>
+        </div>
+
+        <!-- شاشة الإعدادات -->
+        <div id="settings-screen" class="screen">
+            <div class="card">
+                <h3 style="margin-bottom: 12px; font-size: 1rem; color: var(--accent-color);">الإعدادات</h3>
+                
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; font-size: 0.85rem;">
+                    <span>وقت التصويت (ثانية):</span>
+                    <input type="number" id="setting-vote-time" value="30" style="width: 70px; text-align: center; padding: 6px !important;">
+                </div>
+
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; font-size: 0.85rem;">
+                    <span>الوضع الليلي:</span>
+                    <input type="checkbox" id="setting-dark-mode" checked>
+                </div>
+
+                <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem;">
+                    <span>موسيقى الخلفية:</span>
+                    <input type="checkbox" id="setting-music-toggle">
+                </div>
+            </div>
+        </div>
+
+        <!-- شاشة الليل -->
+        <div id="night-screen" class="screen">
+            <div class="card" style="text-align: center;">
+                <h3 style="color: var(--accent-color); margin-bottom: 6px;">حل الظلام في القرية 🌙</h3>
+                <p style="font-size: 0.85rem; margin-bottom: 12px;">دور اللاعب الحالي:</p>
+                <div style="display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 15px;">
+                    <div id="current-turn-avatar-container"></div>
+                    <b id="current-turn-player" style="font-size: 1rem; color: var(--text-color);">...</b>
+                </div>
+                
+                <div id="role-box" class="role-box-hidden">
+                    <div style="font-size: 1.8rem; margin-bottom: 6px;">🔒</div>
+                    <p style="font-size: 0.9rem;">اضغط هنا لكشف دورك وتنفيذ فعلك سراً</p>
+                </div>
+
+                <button id="next-turn-btn" class="primary-btn" style="display: none; margin-top: 15px;">التالي</button>
+            </div>
+        </div>
+
+        <!-- شاشة الصباح -->
+        <div id="morning-screen" class="screen">
+            <div class="card" style="text-align: center;">
+                <h3 style="margin-bottom: 12px; color: var(--accent-color);">شروق الشمس ☀️</h3>
+                <p id="morning-result-text" style="font-size: 0.9rem; line-height: 1.6; margin-bottom: 20px;">...</p>
+                <button id="go-to-vote-btn" class="primary-btn">الانتقال إلى محكمة التصويت ⚖️</button>
+            </div>
+        </div>
+
+        <!-- شاشة التصويت -->
+        <div id="vote-screen" class="screen">
+            <div class="card" style="text-align: center;">
+                <h3 style="margin-bottom: 6px; color: var(--accent-color);">محكمة القرية ⚖️</h3>
+                <p style="font-size: 0.85rem; margin-bottom: 8px;">دور التصويت للاعب:</p>
+                <div style="display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 10px;">
+                    <div id="current-voter-avatar-container"></div>
+                    <b id="current-voter-name" style="color: var(--accent-color); font-size: 1rem;">...</b>
+                </div>
+                <p style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 15px;">الوقت المتبقي: <span id="vote-timer-display" style="font-weight: bold; color: var(--danger-color);">30</span> ثانية</p>
+
+                <div id="vote-targets-list" style="display: flex; flex-direction: column; gap: 8px; max-height: 220px; overflow-y: auto; margin-bottom: 12px;">
+                </div>
+
+                <button id="skip-single-vote-btn" class="secondary-btn" style="width: 100%; padding: 12px; font-size: 0.85rem;">تخطي التصويت / امتناع</button>
+            </div>
+        </div>
+
+        <!-- شاشة نهاية اللعبة -->
+        <div id="game-over-screen" class="screen">
+            <div class="card" style="text-align: center;">
+                <h2 style="margin-bottom: 12px; color: var(--accent-color);">انتهت اللعبة! 🏁</h2>
+                <p id="game-over-text" style="font-size: 1rem; font-weight: bold; margin-bottom: 20px;"></p>
+                <button id="restart-btn" class="primary-btn">لعبة جديدة 🔄</button>
+            </div>
+        </div>
+
+        <!-- القائمة السفلية -->
+        <nav id="main-bottom-nav" class="bottom-nav">
+            <button class="nav-item active" data-target="main-menu-screen">🏠 الرئيسية</button>
+            <button class="nav-item" data-target="players-list-screen">👥 السكان</button>
+            <button class="nav-item" data-target="match-history-screen">📜 السجل</button>
+            <button class="nav-item" data-target="rules-screen">📖 القوانين</button>
+            <button class="nav-item" data-target="settings-screen">⚙️ الإعدادات</button>
+        </nav>
+
     </div>
+
+    <audio id="bg-music" loop src="https://www.bensound.com/bensound-music/bensound-slowmotion.mp3"></audio>
 
     <script src="script.js"></script>
 </body>
