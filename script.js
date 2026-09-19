@@ -1611,26 +1611,60 @@ function getSelectedSpecialRoles() {
 }
 
 
-function getWolfCount(
-  playerCount
-) {
+function getWolfCount(count) {
 
-  if (
-    playerCount >= 16
-  ) return 4;
+  if (count >= 5 && count <= 7) {
+    return 2;
+  }
 
-  if (
-    playerCount >= 12
-  ) return 3;
+  if (count >= 8 && count <= 13) {
+    return 3;
+  }
 
-  if (
-    playerCount >= 8
-  ) return 2;
+  if (count >= 14 && count <= 17) {
+    return 4;
+  }
 
-  return 1;
+  if (count >= 18 && count <= 21) {
+    return 5;
+  }
 
+  if (count >= 22 && count <= 25) {
+    return 6;
+  }
+
+  if (count >= 26 && count <= 29) {
+    return 7;
+  }
+
+  if (count >= 30 && count <= 33) {
+    return 8;
+  }
+
+  if (count >= 34 && count <= 37) {
+    return 9;
+  }
+
+  if (count >= 38 && count <= 41) {
+    return 10;
+  }
+
+  if (count >= 42 && count <= 45) {
+    return 11;
+  }
+
+  if (count >= 46 && count <= 50) {
+    return 12;
+  }
+
+  // أقل من 5 لاعبين
+  if (count < 5) {
+    return 1;
+  }
+
+  // أكثر من 50 لاعب
+  return 12;
 }
-
 
 /* =========================================================
    DISTRIBUTION
@@ -1778,11 +1812,29 @@ function validateRoleSetup() {
 
 }
 
+const ROLE_WEIGHTS = {
 
-/* =========================================================
-   RANDOM ROLES
-   ========================================================= */
+  werewolf: 100,
 
+  doctor: 80,
+
+  seer: 70,
+
+  witch: 60,
+
+  hunter: 45,
+
+  samurai: 35,
+
+  phoenix: 25,
+
+  philosopher: 15,
+
+  trapper: 10,
+
+  villager: 50
+
+};
 function buildRandomRoles() {
 
   const count =
@@ -1817,6 +1869,10 @@ function buildRandomRoles() {
     [];
 
 
+  // =========================================
+  // إضافة القتلة
+  // =========================================
+
   for (
     let i = 0;
     i < wolfCount;
@@ -1830,6 +1886,10 @@ function buildRandomRoles() {
   }
 
 
+  // =========================================
+  // الشخصيات غير القاتلة
+  // =========================================
+
   const nonWolfRoles =
     available.filter(
       role =>
@@ -1838,6 +1898,7 @@ function buildRandomRoles() {
     );
 
 
+  // إذا ماكو أي شخصية ثانية
   if (
     nonWolfRoles.length ===
     0
@@ -1861,19 +1922,77 @@ function buildRandomRoles() {
   }
 
 
+  // =========================================
+  // اختيار الشخصيات حسب الندرة
+  // =========================================
+
   while (
     roles.length <
     count
   ) {
 
-    const index =
-      Math.floor(
-        Math.random() *
-        nonWolfRoles.length
-      );
+    let totalWeight =
+      0;
+
+
+    // حساب مجموع الأوزان
+    for (
+      const role of nonWolfRoles
+    ) {
+
+      const weight =
+        ROLE_WEIGHTS[role] ??
+        1;
+
+      totalWeight +=
+        weight;
+
+    }
+
+
+    // رقم عشوائي داخل مجموع الأوزان
+    let random =
+      Math.random() *
+      totalWeight;
+
+
+    let selectedRole =
+      nonWolfRoles[
+        nonWolfRoles.length - 1
+      ];
+
+
+    // تحديد الشخصية
+    for (
+      const role of nonWolfRoles
+    ) {
+
+      const weight =
+        ROLE_WEIGHTS[role] ??
+        1;
+
+
+      random -=
+        weight;
+
+
+      if (
+        random <=
+        0
+      ) {
+
+        selectedRole =
+          role;
+
+        break;
+
+      }
+
+    }
+
 
     roles.push(
-      nonWolfRoles[index]
+      selectedRole
     );
 
   }
@@ -1884,7 +2003,6 @@ function buildRandomRoles() {
   );
 
 }
-
 
 /* =========================================================
    MANUAL ROLES
@@ -3222,6 +3340,42 @@ case "trapper":
    TARGET RENDER
    ========================================================= */
 
+function setupWolfAction(player) {
+
+  $("actionIcon").textContent =
+    "🔪";
+
+  $("actionTitle").textContent =
+    "اختر ضحية";
+
+  $("actionDescription").textContent =
+    "اختر لاعبًا لاستهدافه. لا يمكنك تخطي دورك.";
+
+
+  /*
+   * مهم جدًا:
+   * نحدد نوع الدور قبل renderTargets
+   * حتى تظهر علامة الصديق.
+   */
+
+  state.currentAction =
+    "wolf";
+
+
+  const targets =
+    alivePlayers().filter(
+      target =>
+        target.id !== player.id
+    );
+
+
+  renderTargets(
+    targets,
+    false
+  );
+
+}
+
 function renderTargets(
   players,
   allowSkip = false
@@ -3238,47 +3392,78 @@ function renderTargets(
 
       ? players
           .map(
-            player => `
+            player => {
 
-              <button
-                class="target-btn"
-                data-target-id="${player.id}"
-                type="button"
-              >
+              const isWolfFriend =
+                state.currentAction ===
+                  "wolf" &&
+                player.role ===
+                  "werewolf";
 
-                <span class="target-player-info">
+
+              return `
+
+                <button
+                  class="target-btn ${
+                    isWolfFriend
+                      ? "wolf-friend"
+                      : ""
+                  }"
+                  data-target-id="${player.id}"
+                  type="button"
+                  ${
+                    isWolfFriend
+                      ? "disabled"
+                      : ""
+                  }
+                >
+
+                  <span class="target-player-info">
+
+                    ${
+                      player.avatar
+                        ? `
+                          <img
+                            src="${escapeHTML(
+                              player.avatar
+                            )}"
+                            alt=""
+                            class="target-avatar"
+                          >
+                        `
+                        : `
+                          <span class="target-avatar target-avatar-empty">
+                            👤
+                          </span>
+                        `
+                    }
+
+                    <span>
+                      ${escapeHTML(
+                        player.name
+                      )}
+                    </span>
+
+                  </span>
+
 
                   ${
-                    player.avatar
+                    isWolfFriend
                       ? `
-                        <img
-                          src="${escapeHTML(
-                            player.avatar
-                          )}"
-                          alt=""
-                          class="target-avatar"
-                        >
+                        <span class="wolf-friend-warning">
+                          🔴 صديقك
+                        </span>
                       `
                       : `
-                        <span class="target-avatar target-avatar-empty">
-                          👤
-                        </span>
+                        <span>›</span>
                       `
                   }
 
-                  <span>
-                    ${escapeHTML(
-                      player.name
-                    )}
-                  </span>
+                </button>
 
-                </span>
+              `;
 
-                <span>›</span>
-
-              </button>
-
-            `
+            }
           )
           .join("")
 
@@ -3303,8 +3488,38 @@ function renderTargets(
           () => {
 
             if (
-              state.actionLocked
+              state.actionLocked ||
+              button.disabled
             ) {
+
+              return;
+
+            }
+
+
+            /*
+             * حماية إضافية:
+             * لا تسمح للقاتل باختيار قاتل آخر.
+             */
+
+            const target =
+              getPlayer(
+                button.dataset.targetId
+              );
+
+
+            if (
+              state.currentAction ===
+                "wolf" &&
+              target &&
+              target.role ===
+                "werewolf"
+            ) {
+
+              showToast(
+                "🔴 هذا اللاعب من فريقك! لا يمكنك قتله.",
+                "error"
+              );
 
               return;
 
@@ -3356,43 +3571,6 @@ function renderTargets(
   }
 
 }
-
-
-/* =========================================================
-   WEREWOLF
-   ========================================================= */
-
-function setupWolfAction(player) {
-
-  $("actionIcon").textContent =
-    "🔪";
-
-  $("actionTitle").textContent =
-    "اختر ضحية";
-
-  $("actionDescription").textContent =
-    "اختر لاعبًا لاستهدافه. لا يمكنك تخطي دورك.";
-
-
-  const targets =
-    alivePlayers().filter(
-      target =>
-        target.id !== player.id
-    );
-
-
-  renderTargets(
-    targets,
-    false
-  );
-
-
-  state.currentAction =
-    "wolf";
-
-}
-
-
 /* =========================================================
    DOCTOR
    ========================================================= */
@@ -6214,14 +6392,11 @@ function handleHunterSkip() {
 function finishNightResult() {
 
   /*
-   * 🌅 الصباح
+   * 🌅 نتيجة الليل
    *
-   * العنقاء تعود هنا، قبل فحص الفوز.
+   * العنقاء لا تعود هنا.
+   * تبقى ميتة حتى انتهاء التصويت.
    */
-
-  const revivedPhoenixes =
-    revivePendingPhoenixes();
-
 
   const deaths =
     state.nightDeaths
@@ -6231,23 +6406,12 @@ function finishNightResult() {
       )
       .filter(
         player =>
-          player &&
-          !(
-            player.role ===
-            "phoenix" &&
-            revivedPhoenixes.some(
-              phoenix =>
-                phoenix.id ===
-                player.id
-            )
-          )
+          player
       );
 
 
   if (
     deaths.length ===
-    0 &&
-    revivedPhoenixes.length ===
     0
   ) {
 
@@ -6270,65 +6434,26 @@ function finishNightResult() {
 
   } else {
 
-    let html = "";
+    let html = `
 
+      مات هذه الليلة:
 
-    if (
-      deaths.length > 0
-    ) {
+      <br><br>
 
-      html += `
+      ${deaths.map(
+        player =>
+          `
 
-        مات هذه الليلة:
+            <strong>
+              💀 ${escapeHTML(
+                player.name
+              )}
+            </strong>
 
-        <br><br>
+          `
+      ).join("<br>")}
 
-        ${deaths.map(
-          player =>
-            `
-
-              <strong>
-                💀 ${escapeHTML(
-                  player.name
-                )}
-              </strong>
-
-            `
-        ).join("<br>")}
-
-      `;
-
-    } else {
-
-      html += `
-        🌙 لم يمت أي لاعب نهائيًا هذه الليلة.
-      `;
-
-    }
-
-
-    if (
-      revivedPhoenixes.length > 0
-    ) {
-
-      html += `
-
-        <br><br>
-
-        🦅 <strong>العنقاء عادت إلى الحياة!</strong>
-
-        <br><br>
-
-        ${revivedPhoenixes.map(
-          player =>
-            `<strong>${escapeHTML(
-              player.name
-            )}</strong> عادت إلى اللعبة في الصباح.`
-        ).join("<br>")}
-
-      `;
-
-    }
+    `;
 
 
     if (
@@ -6349,6 +6474,11 @@ function finishNightResult() {
   );
 
 
+  /*
+   * لا نفحص الفوز هنا إذا كانت العنقاء
+   * تنتظر العودة.
+   */
+
   if (
     checkWinner()
   ) {
@@ -6358,8 +6488,6 @@ function finishNightResult() {
   }
 
 }
-
-
 /* =========================================================
    DISCUSSION
    ========================================================= */
@@ -7398,25 +7526,80 @@ function continueAfterVote() {
 
 
   /*
-   * الفائز
+   * 🦅 العنقاء
    *
-   * إذا كانت العنقاء تنتظر الصباح،
-   * لا نحسم الفوز الآن.
+   * إذا كانت تنتظر العودة، ترجع الآن
+   * بعد انتهاء التصويت وقبل بداية الليل الجديد.
    */
 
-  const phoenixWaiting =
-    state.players.some(
-      player =>
-        player.role ===
-          "phoenix" &&
-        state.phoenixStates[
-          player.id
-        ]?.pending
-    );
+  const revivedPhoenixes =
+    revivePendingPhoenixes();
 
 
   if (
-    !phoenixWaiting &&
+    revivedPhoenixes.length >
+    0
+  ) {
+
+    const names =
+      revivedPhoenixes
+        .map(
+          player =>
+            escapeHTML(
+              player.name
+            )
+        )
+        .join("، ");
+
+
+    /*
+     * إظهار رسالة داخل نتيجة التصويت
+     */
+
+    if (
+      $("voteResultText")
+    ) {
+
+      $("voteResultText")
+        .innerHTML += `
+
+          <br><br>
+
+          🦅 <strong>
+            العنقاء عادت إلى الحياة!
+          </strong>
+
+          <br>
+
+          ${names}
+
+          عادت إلى المباراة.
+
+        `;
+
+    }
+
+
+    /*
+     * إشعار داخل اللعبة
+     */
+
+    showToast(
+      `🦅 العنقاء عادت إلى المباراة!`,
+      "success"
+    );
+
+  }
+
+
+  /*
+   * الفائز
+   *
+   * الآن بعد رجوع العنقاء،
+   * يتم فحص الفوز من جديد.
+   */
+
+  if (
     checkWinner()
   ) {
 
@@ -7449,8 +7632,6 @@ function continueAfterVote() {
   beginNight();
 
 }
-
-
 /* =========================================================
    SAMURAI DUEL
    ========================================================= */
