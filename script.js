@@ -938,13 +938,16 @@ function showModal(
   title,
   text,
   icon = "ℹ️",
-  callback = null
+  callback = null,
+  lockClose = false
 ) {
 
   const modal =
     $("modal");
 
-  if (!modal) return;
+  if (!modal) {
+    return;
+  }
 
   $("modalTitle").textContent =
     title;
@@ -956,21 +959,29 @@ function showModal(
     icon;
 
   state.modalCallback =
-    typeof callback ===
-    "function"
-      ? callback
-      : null;
+    callback;
+
+  state.modalLocked =
+    lockClose;
 
   modal.classList.remove(
     "hidden"
   );
-
 }
 
 
 function closeModal(
   confirmed = false
 ) {
+
+  // إذا النافذة مقفلة، لا تسمح بإغلاقها
+  // إلا عن طريق زر "حسنًا"
+  if (
+    state.modalLocked &&
+    !confirmed
+  ) {
+    return;
+  }
 
   const modal =
     $("modal");
@@ -989,6 +1000,9 @@ function closeModal(
   state.modalCallback =
     null;
 
+  state.modalLocked =
+    false;
+
   if (
     confirmed &&
     typeof callback ===
@@ -1000,8 +1014,6 @@ function closeModal(
   }
 
 }
-
-
 /* =========================================================
    HOME / EXIT
    ========================================================= */
@@ -2774,14 +2786,7 @@ function beginNight() {
     alivePlayers();
 
 
-  state.nightOrder =
-    [...alive].sort(
-      (a, b) =>
-        a.name.localeCompare(
-          b.name,
-          "ar"
-        )
-    );
+  state.nightOrder = [...alive];
 
 
   state.nightIndex =
@@ -4037,94 +4042,61 @@ function setupTrapperAction(
    PHILOSOPHER
    ========================================================= */
 
-function setupPhilosopherAction(
-  player
-) {
+function setupPhilosopherAction(player) {
 
-  $("actionIcon").textContent =
-    "🧠";
-
+  $("actionIcon").textContent = "🧠";
 
   const philosopher =
-    state.philosopherStates[
-      player.id
-    ] || {
-
-      firstTarget:
-        null,
-
-      firstNight:
-        null
-
+    state.philosopherStates[player.id] || {
+      firstTarget: null,
+      firstNight: null
     };
 
-
-  state.philosopherStates[
-    player.id
-  ] =
-    philosopher;
-
+  state.philosopherStates[player.id] = philosopher;
 
   /*
-   * إذا كان اللاعب الذي تمت زيارته
-   * أول مرة قد مات، لا يمكن إكمال
-   * الزيارة الثانية له.
-   *
-   * لذلك نسمح للفيلسوف ببدء زيارة
-   * جديدة للاعب آخر.
+   * إذا مات الهدف الأول قبل الزيارة الثانية،
+   * يبدأ الفيلسوف من جديد.
    */
 
-  if (
-    philosopher.firstTarget
-  ) {
+  if (philosopher.firstTarget) {
 
     const previousTarget =
-      getPlayer(
-        philosopher.firstTarget
-      );
-
+      getPlayer(philosopher.firstTarget);
 
     if (
       !previousTarget ||
       !previousTarget.alive
     ) {
-
-      philosopher.firstTarget =
-        null;
-
-      philosopher.firstNight =
-        null;
-
+      philosopher.firstTarget = null;
+      philosopher.firstNight = null;
     }
-
   }
-
 
   const targets =
     alivePlayers().filter(
-      target =>
-        target.id !==
-        player.id
+      target => target.id !== player.id
     );
 
+  state.currentAction = "philosopher";
+  state.selectedTarget = null;
 
-  if (
-    philosopher.firstTarget
-  ) {
+  if (philosopher.firstTarget) {
 
     const sameTarget =
-      getPlayer(
-        philosopher.firstTarget
-      );
-
+      getPlayer(philosopher.firstTarget);
 
     $("actionTitle").textContent =
       "الزيارة الثانية";
 
-
     $("actionDescription").textContent =
-      `لقد زرت ${sameTarget ? sameTarget.name : "هذا اللاعب"} في الليلة ${philosopher.firstNight}. يجب أن تزوره مرة أخرى لمعرفة دوره وما فعله في تلك الليلة.`;
-
+      `لقد زرت ${
+        sameTarget
+          ? sameTarget.name
+          : "هذا اللاعب"
+      } في الليلة ${
+        philosopher.firstNight
+      }. يجب أن تزوره مرة أخرى لمعرفة دوره وما فعله في تلك الليلة.`;
 
     renderTargets(
       targets.filter(
@@ -4140,22 +4112,14 @@ function setupPhilosopherAction(
     $("actionTitle").textContent =
       "الزيارة الأولى";
 
-
     $("actionDescription").textContent =
       "اختر لاعبًا. لن تعرف أي معلومة الآن، ويجب أن تزور اللاعب نفسه في ليلة لاحقة لمعرفة دوره وما فعله.";
-
 
     renderTargets(
       targets,
       false
     );
-
   }
-
-
-  state.currentAction =
-    "philosopher";
-
 }
 
 
@@ -4165,8 +4129,7 @@ function setupPhilosopherAction(
 
 function setupHunterNightAction() {
 
-  $("actionIcon").textContent =
-    "🏹";
+  $("actionIcon").textContent = "🏹";
 
   $("actionTitle").textContent =
     "ليست لديك حركة ليلية";
@@ -4174,16 +4137,13 @@ function setupHunterNightAction() {
   $("actionDescription").textContent =
     "انتظر حتى يأتي دورك في حالة موتك.";
 
-
   $("skipActionBtn")
-    ?.classList.remove(
-      "hidden"
-    );
+    ?.classList.remove("hidden");
 
+  $("confirmActionBtn")
+    ?.classList.add("hidden");
 
-  state.currentAction =
-    "skip";
-
+  state.currentAction = "skip";
 }
 
 
@@ -4193,8 +4153,7 @@ function setupHunterNightAction() {
 
 function setupVillagerAction() {
 
-  $("actionIcon").textContent =
-    "👨‍🌾";
+  $("actionIcon").textContent = "👨‍🌾";
 
   $("actionTitle").textContent =
     "لا توجد قدرة";
@@ -4202,16 +4161,13 @@ function setupVillagerAction() {
   $("actionDescription").textContent =
     "أنت قروي. لا توجد لديك حركة ليلية.";
 
-
   $("skipActionBtn")
-    ?.classList.remove(
-      "hidden"
-    );
+    ?.classList.remove("hidden");
 
+  $("confirmActionBtn")
+    ?.classList.add("hidden");
 
-  state.currentAction =
-    "skip";
-
+  state.currentAction = "skip";
 }
 
 
@@ -4219,36 +4175,16 @@ function setupVillagerAction() {
    NIGHT ACTION HISTORY
    ========================================================= */
 
-function recordNightAction(
-  player
-) {
+function recordNightAction(player) {
 
   if (!player) return;
 
-
-  if (
-    !state.nightActionHistory[
-      state.night
-    ]
-  ) {
-
-    state.nightActionHistory[
-      state.night
-    ] = {};
-
+  if (!state.nightActionHistory[state.night]) {
+    state.nightActionHistory[state.night] = {};
   }
 
-
-  let action =
-    state.currentAction;
-
-  let targetId =
-    state.selectedTarget || null;
-
-
-  /*
-   * الأدوار التي لا تملك حركة حقيقية
-   */
+  let action = state.currentAction;
+  let targetId = state.selectedTarget || null;
 
   if (
     action === "skip" ||
@@ -4256,28 +4192,14 @@ function recordNightAction(
     action === "phoenix-skip" ||
     action === "witch"
   ) {
-
-    action =
-      "none";
-
-    targetId =
-      null;
-
+    action = "none";
+    targetId = null;
   }
 
-
-  state.nightActionHistory[
-    state.night
-  ][
-    player.id
-  ] = {
-
+  state.nightActionHistory[state.night][player.id] = {
     action,
-
     targetId
-
   };
-
 }
 
 
@@ -4285,82 +4207,64 @@ function recordNightAction(
    DESCRIBE NIGHT ACTION
    ========================================================= */
 
-function describeNightAction(
-  record
-) {
+function describeNightAction(record) {
 
   if (
     !record ||
     !record.action ||
-    record.action ===
-      "none"
+    record.action === "none"
   ) {
-
     return "لم يستخدم قدرته في تلك الليلة.";
-
   }
-
 
   const target =
     record.targetId
-      ? getPlayer(
-          record.targetId
-        )
+      ? getPlayer(record.targetId)
       : null;
-
 
   const targetName =
     target
-      ? escapeHTML(
-          target.name
-        )
+      ? escapeHTML(target.name)
       : null;
 
-
-  switch (
-    record.action
-  ) {
+  switch (record.action) {
 
     case "wolf":
-
       return targetName
         ? `هاجم <strong>${targetName}</strong>.`
         : "هاجم لاعبًا.";
 
     case "doctor":
-
       return targetName
         ? `حاول حماية <strong>${targetName}</strong>.`
         : "استخدم قدرته للحماية.";
 
     case "seer":
-
       return targetName
         ? `كشف دور <strong>${targetName}</strong>.`
         : "استخدم قدرته للكشف.";
 
     case "witch-heal":
-
       return "استخدم إكسير الشفاء.";
 
     case "witch-poison":
-
       return targetName
         ? `استخدم السم على <strong>${targetName}</strong>.`
         : "استخدم السم.";
 
     case "philosopher":
-
       return targetName
         ? `زار <strong>${targetName}</strong>.`
         : "استخدم قدرة الفيلسوف.";
 
+    case "trapper":
+      return targetName
+        ? `وضع فخًا على <strong>${targetName}</strong>.`
+        : "وضع فخًا.";
+
     default:
-
       return "لم يستخدم قدرته في تلك الليلة.";
-
   }
-
 }
 
 
@@ -4373,70 +4277,38 @@ function showPhilosopherResult(
   target
 ) {
 
-  if (
-    !philosopher ||
-    !target
-  ) {
-
+  if (!philosopher || !target) {
     finishNightTurn();
-
     return;
-
   }
 
-
   const stateData =
-    state.philosopherStates[
-      philosopher.id
-    ];
-
+    state.philosopherStates[philosopher.id];
 
   if (
     !stateData ||
     !stateData.firstTarget ||
-    !stateData.firstNight
+    stateData.firstNight == null
   ) {
-
     finishNightTurn();
-
     return;
-
   }
 
-
-  const role =
-    getRole(
-      target
-    );
-
+  const role = getRole(target);
 
   const record =
     state.nightActionHistory[
       stateData.firstNight
-    ]?.[
-      target.id
-    ] || {
-
-      action:
-        "none",
-
-      targetId:
-        null
-
+    ]?.[target.id] || {
+      action: "none",
+      targetId: null
     };
 
-
   const actionText =
-    describeNightAction(
-      record
-    );
-
+    describeNightAction(record);
 
   const message = `
-
-    <strong>${escapeHTML(
-      target.name
-    )}</strong>
+    <strong>${escapeHTML(target.name)}</strong>
 
     <br><br>
 
@@ -4446,7 +4318,7 @@ function showPhilosopherResult(
 
     <strong>
       ${role?.icon || "❓"}
-      ${role?.name || "غير معروف"}
+      ${escapeHTML(role?.name || "غير معروف")}
     </strong>
 
     <br><br>
@@ -4468,57 +4340,31 @@ function showPhilosopherResult(
     <br>
 
     ${actionText}
-
   `;
 
-
   /*
-   * بعد الحصول على المعلومات،
-   * تنتهي المهمة ويستطيع الفيلسوف
-   * استخدام قدرته من جديد في زيارة
-   * أخرى مستقبلًا.
+   * بعد الزيارة الثانية،
+   * يحصل الفيلسوف على المعلومات
+   * ويمكنه بدء زيارة جديدة مستقبلًا.
    */
 
-  state.philosopherStates[
-    philosopher.id
-  ] = {
-
-    firstTarget:
-      null,
-
-    firstNight:
-      null
-
+  state.philosopherStates[philosopher.id] = {
+    firstTarget: null,
+    firstNight: null
   };
-
 
   showModal(
     "🧠 معلومات الفيلسوف",
     "",
     "🧠",
     () => {
-
       finishNightTurn();
-
     }
   );
 
-
-  /*
-   * showModal يستخدم textContent،
-   * لذلك نضع النتيجة بصيغة HTML
-   * داخل عنصر المودال مباشرة.
-   */
-
-  if (
-    $("modalText")
-  ) {
-
-    $("modalText").innerHTML =
-      message;
-
+  if ($("modalText")) {
+    $("modalText").innerHTML = message;
   }
-
 }
 
 
@@ -4528,36 +4374,347 @@ function showPhilosopherResult(
 
 function confirmAction() {
 
-  if (
-    state.actionLocked
-  ) {
-
+  if (state.actionLocked) {
     return;
-
   }
 
+  const player = state.currentPlayer;
 
-  const player =
-    state.currentPlayer;
+  if (!player || !player.alive) {
+    return;
+  }
 
-  if (!player) return;
+  const action = state.currentAction;
 
-
-  state.actionLocked =
-    true;
-
+  state.actionLocked = true;
 
   $("confirmActionBtn")
-    ?.setAttribute(
-      "disabled",
-      "disabled"
-    );
+    ?.setAttribute("disabled", "disabled");
 
 
-  switch (
-    state.currentAction
-  ) {
-case "trapper": {
+  switch (action) {
+
+    /* =====================================================
+       TRAPPER
+       ===================================================== */
+
+    case "trapper": {
+
+      if (!state.selectedTarget) {
+
+        state.actionLocked = false;
+
+        $("confirmActionBtn")
+          ?.removeAttribute("disabled");
+
+        showToast(
+          "اختر لاعبًا لوضع الفخ عليه",
+          "error"
+        );
+
+        return;
+      }
+
+      const trapper =
+        state.trapperStates[player.id];
+
+      if (!trapper) {
+
+        state.actionLocked = false;
+
+        $("confirmActionBtn")
+          ?.removeAttribute("disabled");
+
+        showToast(
+          "حدث خطأ في حالة ناصب الفخاخ",
+          "error"
+        );
+
+        return;
+      }
+
+      if (trapper.uses >= 2) {
+
+        state.actionLocked = false;
+
+        $("confirmActionBtn")
+          ?.removeAttribute("disabled");
+
+        showToast(
+          "لقد استخدمت الفخ مرتين",
+          "error"
+        );
+
+        return;
+      }
+
+      const target =
+        getPlayer(state.selectedTarget);
+
+      if (
+        !target ||
+        !target.alive ||
+        target.id === player.id
+      ) {
+
+        state.actionLocked = false;
+
+        $("confirmActionBtn")
+          ?.removeAttribute("disabled");
+
+        showToast(
+          "هذا اللاعب غير متاح",
+          "error"
+        );
+
+        return;
+      }
+
+      trapper.uses += 1;
+      trapper.targetId = target.id;
+      trapper.targetNight = state.night;
+
+      showToast(
+        `🕶️ تم وضع الفخ على ${target.name} لهذه الليلة`,
+        "success"
+      );
+
+      finishNightTurn();
+
+      return;
+    }
+
+
+    /* =====================================================
+       WEREWOLF
+       ===================================================== */
+
+    case "wolf": {
+
+      if (!state.selectedTarget) {
+
+        state.actionLocked = false;
+
+        $("confirmActionBtn")
+          ?.removeAttribute("disabled");
+
+        showToast(
+          "اختر هدفًا أولًا",
+          "error"
+        );
+
+        return;
+      }
+
+      const target =
+        getPlayer(state.selectedTarget);
+
+      /*
+       * حماية إضافية:
+       * القاتل لا يستطيع استهداف نفسه
+       * ولا يستطيع استهداف قاتل آخر.
+       */
+
+      if (
+        !target ||
+        !target.alive ||
+        target.id === player.id ||
+        target.role === "werewolf"
+      ) {
+
+        state.actionLocked = false;
+
+        $("confirmActionBtn")
+          ?.removeAttribute("disabled");
+
+        state.selectedTarget = null;
+
+        showToast(
+          "لا يمكنك استهداف هذا اللاعب",
+          "error"
+        );
+
+        return;
+      }
+
+      state.wolfChoices[player.id] =
+        target.id;
+
+      finishNightTurn();
+
+      return;
+    }
+
+
+    /* =====================================================
+       SAMURAI DUEL
+       ===================================================== */
+
+    case "samurai-duel": {
+
+      if (!state.selectedTarget) {
+
+        state.actionLocked = false;
+
+        $("confirmActionBtn")
+          ?.removeAttribute("disabled");
+
+        showToast(
+          "اختر لاعبًا أولًا",
+          "error"
+        );
+
+        return;
+      }
+
+      const target =
+        getPlayer(state.selectedTarget);
+
+      if (
+        !target ||
+        !target.alive ||
+        target.id === player.id
+      ) {
+
+        state.actionLocked = false;
+
+        $("confirmActionBtn")
+          ?.removeAttribute("disabled");
+
+        showToast(
+          "هذا اللاعب لم يعد متاحًا",
+          "error"
+        );
+
+        return;
+      }
+
+      if (target.role === "werewolf") {
+
+        target.alive = false;
+
+        if ($("voteResultText")) {
+
+          $("voteResultText").innerHTML = `
+            ⚔️ الساموراي
+            <strong>
+              ${escapeHTML(player.name)}
+            </strong>
+
+            اختار:
+
+            <strong>
+              ${escapeHTML(target.name)}
+            </strong>
+
+            للمبارزة.
+
+            <br><br>
+
+            🔪 كان من المرتزقة وخرج من اللعبة معه.
+          `;
+        }
+
+        showToast(
+          "⚔️ الساموراي هزم أحد المرتزقة!",
+          "success"
+        );
+
+      } else {
+
+        if ($("voteResultText")) {
+
+          $("voteResultText").innerHTML = `
+            ⚔️ الساموراي
+            <strong>
+              ${escapeHTML(player.name)}
+            </strong>
+
+            اختار:
+
+            <strong>
+              ${escapeHTML(target.name)}
+            </strong>
+
+            للمبارزة.
+
+            <br><br>
+
+            🏘️ اللاعب ليس من المرتزقة،
+            لذلك بقي في اللعبة.
+          `;
+        }
+
+        showToast(
+          "⚔️ انتهت المبارزة دون إخراج اللاعب",
+          "error"
+        );
+      }
+
+      state.selectedTarget = null;
+      state.samuraiMode = true;
+
+      $("confirmActionBtn")
+        ?.removeAttribute("disabled");
+
+      if (checkWinner()) {
+        return;
+      }
+
+      showScreen("voteResultScreen");
+
+      return;
+    }
+
+
+    /* =====================================================
+       DOCTOR
+       ===================================================== */
+
+    case "doctor": {
+
+      if (state.selectedTarget) {
+
+        const target =
+          getPlayer(state.selectedTarget);
+
+        if (
+          !target ||
+          !target.alive
+        ) {
+
+          state.actionLocked = false;
+
+          $("confirmActionBtn")
+            ?.removeAttribute("disabled");
+
+          showToast(
+            "هذا اللاعب غير متاح",
+            "error"
+          );
+
+          return;
+        }
+
+        state.doctorTarget =
+          target.id;
+
+      } else {
+
+        state.doctorTarget = null;
+      }
+
+      finishNightTurn();
+
+      return;
+    }
+
+
+    /* =====================================================
+       SEER
+       ===================================================== */
+
+    case "seer": {
 
   if (!state.selectedTarget) {
 
@@ -4567,48 +4724,12 @@ case "trapper": {
       ?.removeAttribute("disabled");
 
     showToast(
-      "اختر لاعبًا لوضع الفخ عليه",
-      "error"
+      "⚠️ يجب اختيار لاعب أولًا!",
+      "warning"
     );
 
     return;
   }
-
-
-  const trapper =
-    state.trapperStates[player.id];
-
-  if (!trapper) {
-
-    state.actionLocked = false;
-
-    $("confirmActionBtn")
-      ?.removeAttribute("disabled");
-
-    showToast(
-      "حدث خطأ في حالة ناصب الفخاخ",
-      "error"
-    );
-
-    return;
-  }
-
-
-  if (trapper.uses >= 2) {
-
-    state.actionLocked = false;
-
-    $("confirmActionBtn")
-      ?.removeAttribute("disabled");
-
-    showToast(
-      "لقد استخدمت الفخ مرتين",
-      "error"
-    );
-
-    return;
-  }
-
 
   const target =
     getPlayer(state.selectedTarget);
@@ -4625,370 +4746,63 @@ case "trapper": {
       ?.removeAttribute("disabled");
 
     showToast(
-      "هذا اللاعب غير متاح",
-      "error"
+      "⚠️ هذا اللاعب غير متاح!",
+      "warning"
     );
 
     return;
   }
 
-
-  // تسجيل الفخ
-  trapper.uses += 1;
-
-  trapper.targetId =
+  state.seerTarget =
     target.id;
 
-  trapper.targetNight =
-    state.night;
+  const targetRole =
+    getRole(target);
 
+  /*
+   * مهم جدًا:
+   * لا نسمح بإغلاق نافذة كشف العراف
+   * بالنقر خارجها.
+   *
+   * الانتقال التالي يحصل فقط عند الضغط
+   * على زر "حسنًا".
+   */
 
-  // تسجيل الحركة قبل الانتقال
-  state.currentAction =
-    "trapper";
+    showModal(
+  "🔮 كشف العراف",
+  `${target.name} دوره هو: ${targetRole.icon} ${targetRole.name}`,
+  "🔮",
+  () => {
 
+    state.actionLocked =
+      false;
 
-  showToast(
-    `🕶️ تم وضع الفخ على ${target.name} لهذه الليلة`,
-    "success"
-  );
+    finishNightTurn();
 
+  },
+  true
+);
 
-  finishNightTurn();
-
-  return;
-}
-    case "wolf": {
-
-      if (
-        !state.selectedTarget
-      ) {
-
-        state.actionLocked =
-          false;
-
-        $("confirmActionBtn")
-          ?.removeAttribute(
-            "disabled"
-          );
-
-        showToast(
-          "اختر هدفًا أولًا",
-          "error"
-        );
-
-        return;
-
-      }
-
-
-      state.wolfChoices[
-        player.id
-      ] =
-        state.selectedTarget;
-
-
-      finishNightTurn();
-
-      break;
-
+return;
     }
-
-
-    case "samurai-duel": {
-
-      if (
-        !state.selectedTarget
-      ) {
-
-        state.actionLocked =
-          false;
-
-        $("confirmActionBtn")
-          ?.removeAttribute(
-            "disabled"
-          );
-
-        showToast(
-          "اختر لاعبًا أولًا",
-          "error"
-        );
-
-        return;
-
-      }
-
-
-      const target =
-        getPlayer(
-          state.selectedTarget
-        );
-
-
-      if (
-        !target ||
-        !target.alive
-      ) {
-
-        state.actionLocked =
-          false;
-
-        $("confirmActionBtn")
-          ?.removeAttribute(
-            "disabled"
-          );
-
-        showToast(
-          "هذا اللاعب لم يعد متاحًا",
-          "error"
-        );
-
-        return;
-
-      }
-
-
-      if (
-        target.role ===
-        "werewolf"
-      ) {
-
-        target.alive =
-          false;
-
-
-        if (
-          $("voteResultText")
-        ) {
-
-          $("voteResultText")
-            .innerHTML = `
-
-              ⚔️ الساموراي
-
-              <strong>
-                ${escapeHTML(
-                  state.currentPlayer.name
-                )}
-              </strong>
-
-              اختار:
-
-              <strong>
-                ${escapeHTML(
-                  target.name
-                )}
-              </strong>
-
-              للمبارزة.
-
-              <br><br>
-
-              🔪 كان من المرتزقة وخرج من اللعبة معه.
-
-            `;
-
-        }
-
-
-        showToast(
-          "⚔️ الساموراي هزم أحد المرتزقة!",
-          "success"
-        );
-
-      } else {
-
-        if (
-          $("voteResultText")
-        ) {
-
-          $("voteResultText")
-            .innerHTML = `
-
-              ⚔️ الساموراي
-
-              <strong>
-                ${escapeHTML(
-                  state.currentPlayer.name
-                )}
-              </strong>
-
-              اختار:
-
-              <strong>
-                ${escapeHTML(
-                  target.name
-                )}
-              </strong>
-
-              للمبارزة.
-
-              <br><br>
-
-              🏘️ اللاعب ليس من المرتزقة،
-              لذلك بقي في اللعبة.
-
-            `;
-
-        }
-
-
-        showToast(
-          "⚔️ انتهت المبارزة دون إخراج اللاعب",
-          "error"
-        );
-
-      }
-
-
-      state.selectedTarget =
-        null;
-
-      state.samuraiMode =
-        true;
-
-      state.actionLocked =
-        true;
-
-
-      $("confirmActionBtn")
-        ?.removeAttribute(
-          "disabled"
-        );
-
-
-      if (
-        checkWinner()
-      ) {
-
-        return;
-
-      }
-
-
-      showScreen(
-        "voteResultScreen"
-      );
-
-      break;
-
-    }
-
-
-    case "doctor": {
-
-      state.doctorTarget =
-        state.selectedTarget ||
-        null;
-
-
-      finishNightTurn();
-
-      break;
-
-    }
-
-
-    case "seer": {
-
-      if (
-        !state.selectedTarget
-      ) {
-
-        showToast(
-          "⚠️ يجب اختيار لاعب أولاً!",
-          "warning"
-        );
-
-        state.actionLocked =
-          false;
-
-        $("confirmActionBtn")
-          ?.removeAttribute(
-            "disabled"
-          );
-
-        return;
-
-      }
-
-
-      const target =
-        getPlayer(
-          state.selectedTarget
-        );
-
-
-      if (
-        !target ||
-        !target.alive
-      ) {
-
-        showToast(
-          "⚠️ هذا اللاعب غير متاح!",
-          "warning"
-        );
-
-        state.actionLocked =
-          false;
-
-        $("confirmActionBtn")
-          ?.removeAttribute(
-            "disabled"
-          );
-
-        return;
-
-      }
-
-
-      state.seerTarget =
-        target.id;
-
-
-      const targetRole =
-        getRole(
-          target
-        );
-
-
-      showModal(
-        "🔮 كشف العراف",
-        `${target.name} دوره هو: ${targetRole.icon} ${targetRole.name}`,
-        "🔮",
-        () => {
-
-          finishNightTurn();
-
-        }
-      );
-
-
-      return;
-
-    }
-
+    /* =====================================================
+       WITCH HEAL
+       ===================================================== */
 
     case "witch-heal": {
 
       const witch =
-        state.witchStates[
-          player.id
-        ];
-
+        state.witchStates[player.id];
 
       if (
         !witch ||
         witch.healUsed
       ) {
 
-        state.actionLocked =
-          false;
+        state.actionLocked = false;
 
         $("confirmActionBtn")
-          ?.removeAttribute(
-            "disabled"
-          );
+          ?.removeAttribute("disabled");
 
         showToast(
           "إكسير الشفاء مستخدم مسبقًا",
@@ -4996,62 +4810,56 @@ case "trapper": {
         );
 
         return;
-
       }
 
+      witch.healUsed = true;
 
-      witch.healUsed =
-        true;
-
+      /*
+       * الإكسير يحمي اللاعب من كل شيء
+       * ما عدا السم.
+       */
 
       if (
         !state.nightProtectedPlayers
-          .includes(
-            player.id
-          )
+          .includes(player.id)
       ) {
 
-        state.nightProtectedPlayers
-          .push(
-            player.id
-          );
-
+        state.nightProtectedPlayers.push(
+          player.id
+        );
       }
 
+      state.isGroupPotionActive = true;
 
       showToast(
         "تم استخدام إكسير الشفاء",
         "success"
       );
 
-
       finishNightTurn();
 
-      break;
-
+      return;
     }
 
+
+    /* =====================================================
+       WITCH POISON
+       ===================================================== */
 
     case "witch-poison": {
 
       const witch =
-        state.witchStates[
-          player.id
-        ];
-
+        state.witchStates[player.id];
 
       if (
         !witch ||
         witch.poisonUsed
       ) {
 
-        state.actionLocked =
-          false;
+        state.actionLocked = false;
 
         $("confirmActionBtn")
-          ?.removeAttribute(
-            "disabled"
-          );
+          ?.removeAttribute("disabled");
 
         showToast(
           "السم مستخدم مسبقًا",
@@ -5059,21 +4867,14 @@ case "trapper": {
         );
 
         return;
-
       }
 
+      if (!state.selectedTarget) {
 
-      if (
-        !state.selectedTarget
-      ) {
-
-        state.actionLocked =
-          false;
+        state.actionLocked = false;
 
         $("confirmActionBtn")
-          ?.removeAttribute(
-            "disabled"
-          );
+          ?.removeAttribute("disabled");
 
         showToast(
           "اختر لاعبًا لتسميمه",
@@ -5081,71 +4882,10 @@ case "trapper": {
         );
 
         return;
-
       }
-
-
-      witch.poisonUsed =
-        true;
-
-
-      if (
-        !state.nightPoisonTargets
-          .includes(
-            state.selectedTarget
-          )
-      ) {
-
-        state.nightPoisonTargets
-          .push(
-            state.selectedTarget
-          );
-
-      }
-
-
-      showToast(
-        "تم استخدام السم",
-        "success"
-      );
-
-
-      finishNightTurn();
-
-      break;
-
-    }
-
-
-    case "philosopher": {
-
-      if (
-        !state.selectedTarget
-      ) {
-
-        state.actionLocked =
-          false;
-
-        $("confirmActionBtn")
-          ?.removeAttribute(
-            "disabled"
-          );
-
-        showToast(
-          "اختر لاعبًا أولًا",
-          "error"
-        );
-
-        return;
-
-      }
-
 
       const target =
-        getPlayer(
-          state.selectedTarget
-        );
-
+        getPlayer(state.selectedTarget);
 
       if (
         !target ||
@@ -5153,13 +4893,10 @@ case "trapper": {
         target.id === player.id
       ) {
 
-        state.actionLocked =
-          false;
+        state.actionLocked = false;
 
         $("confirmActionBtn")
-          ?.removeAttribute(
-            "disabled"
-          );
+          ?.removeAttribute("disabled");
 
         showToast(
           "هذا اللاعب غير متاح",
@@ -5167,31 +4904,85 @@ case "trapper": {
         );
 
         return;
-
       }
 
+      witch.poisonUsed = true;
+
+      if (
+        !state.nightPoisonTargets
+          .includes(target.id)
+      ) {
+
+        state.nightPoisonTargets.push(
+          target.id
+        );
+      }
+
+      showToast(
+        "تم استخدام السم",
+        "success"
+      );
+
+      finishNightTurn();
+
+      return;
+    }
+
+
+    /* =====================================================
+       PHILOSOPHER
+       ===================================================== */
+
+    case "philosopher": {
+
+      if (!state.selectedTarget) {
+
+        state.actionLocked = false;
+
+        $("confirmActionBtn")
+          ?.removeAttribute("disabled");
+
+        showToast(
+          "اختر لاعبًا أولًا",
+          "error"
+        );
+
+        return;
+      }
+
+      const target =
+        getPlayer(state.selectedTarget);
+
+      if (
+        !target ||
+        !target.alive ||
+        target.id === player.id
+      ) {
+
+        state.actionLocked = false;
+
+        $("confirmActionBtn")
+          ?.removeAttribute("disabled");
+
+        showToast(
+          "هذا اللاعب غير متاح",
+          "error"
+        );
+
+        return;
+      }
 
       const philosopher =
-        state.philosopherStates[
-          player.id
-        ] || {
-
-          firstTarget:
-            null,
-
-          firstNight:
-            null
-
+        state.philosopherStates[player.id] || {
+          firstTarget: null,
+          firstNight: null
         };
-
 
       /*
        * الزيارة الأولى
        */
 
-      if (
-        !philosopher.firstTarget
-      ) {
+      if (!philosopher.firstTarget) {
 
         philosopher.firstTarget =
           target.id;
@@ -5199,29 +4990,22 @@ case "trapper": {
         philosopher.firstNight =
           state.night;
 
-
-        state.philosopherStates[
-          player.id
-        ] =
+        state.philosopherStates[player.id] =
           philosopher;
-
 
         showToast(
           `🧠 تمت الزيارة الأولى لـ ${target.name}. يجب العودة إليه في ليلة لاحقة.`,
           "success"
         );
 
-
         finishNightTurn();
 
         return;
-
       }
-
 
       /*
        * الزيارة الثانية يجب أن تكون
-       * لنفس اللاعب بالضبط.
+       * لنفس اللاعب.
        */
 
       if (
@@ -5229,13 +5013,10 @@ case "trapper": {
         target.id
       ) {
 
-        state.actionLocked =
-          false;
+        state.actionLocked = false;
 
         $("confirmActionBtn")
-          ?.removeAttribute(
-            "disabled"
-          );
+          ?.removeAttribute("disabled");
 
         showToast(
           "🧠 يجب أن تزور نفس اللاعب الذي زرته في المرة الأولى.",
@@ -5243,33 +5024,25 @@ case "trapper": {
         );
 
         return;
-
       }
-
-
-      /*
-       * تمّت الزيارة الثانية.
-       * الآن نكشف المعلومات.
-       */
 
       showPhilosopherResult(
         player,
         target
       );
 
-      break;
-
+      return;
     }
 
 
+    /* =====================================================
+       DEFAULT
+       ===================================================== */
+
     default:
-
       finishNightTurn();
-
-      break;
-
+      return;
   }
-
 }
 
 
@@ -5279,28 +5052,16 @@ case "trapper": {
 
 function skipAction() {
 
-  if (
-    state.actionLocked
-  ) {
-
+  if (state.actionLocked) {
     return;
-
   }
 
-
-  state.actionLocked =
-    true;
-
+  state.actionLocked = true;
 
   $("skipActionBtn")
-    ?.setAttribute(
-      "disabled",
-      "disabled"
-    );
-
+    ?.setAttribute("disabled", "disabled");
 
   finishNightTurn();
-
 }
 
 
@@ -5310,47 +5071,25 @@ function skipAction() {
 
 function finishNightTurn() {
 
-  if (
-    state.nightResolved
-  ) {
-
+  if (state.nightResolved) {
     return;
-
   }
 
-
-  /*
-   * تسجيل حركة اللاعب قبل الانتقال
-   * إلى اللاعب التالي.
-   *
-   * هذا هو السجل الذي يستخدمه الفيلسوف
-   * في الزيارة الثانية.
-   */
-
-  if (
-    state.currentPlayer
-  ) {
-
+  if (state.currentPlayer) {
     recordNightAction(
       state.currentPlayer
     );
-
   }
-
 
   state.nightIndex++;
 
-
   $("confirmActionBtn")
-    ?.removeAttribute(
-      "disabled"
-    );
+    ?.removeAttribute("disabled");
 
   $("skipActionBtn")
-    ?.removeAttribute(
-      "disabled"
-    );
+    ?.removeAttribute("disabled");
 
+  state.selectedTarget = null;
 
   if (
     state.nightIndex >=
@@ -5360,47 +5099,33 @@ function finishNightTurn() {
     resolveNight();
 
     return;
-
   }
 
-
   let nextPlayer =
-    state.nightOrder[
-      state.nightIndex
-    ];
-
+    state.nightOrder[state.nightIndex];
 
   while (
     nextPlayer &&
-    !getPlayer(
-      nextPlayer.id
-    )?.alive
+    !getPlayer(nextPlayer.id)?.alive
   ) {
 
     state.nightIndex++;
 
     nextPlayer =
-      state.nightOrder[
-        state.nightIndex
-      ];
-
+      state.nightOrder[state.nightIndex];
   }
-
 
   if (!nextPlayer) {
 
     resolveNight();
 
     return;
-
   }
-
 
   showPassScreen(
     nextPlayer,
     "night"
   );
-
 }
 
 
@@ -5413,13 +5138,9 @@ function showPassScreen(
   mode
 ) {
 
-  state.passMode =
-    mode;
+  state.passMode = mode;
 
-
-  let player =
-    playerOrName;
-
+  let player = playerOrName;
 
   if (
     typeof playerOrName ===
@@ -5432,26 +5153,16 @@ function showPassScreen(
           p.name ===
           playerOrName
       );
-
   }
-
 
   if (player) {
 
-    state.currentPlayer =
-      player;
+    state.currentPlayer = player;
 
-
-    if (
-      $("passPlayerName")
-    ) {
-
-      $("passPlayerName")
-        .textContent =
+    if ($("passPlayerName")) {
+      $("passPlayerName").textContent =
         player.name;
-
     }
-
 
     setAvatarElement(
       $("passPlayerAvatar"),
@@ -5460,23 +5171,13 @@ function showPassScreen(
 
   } else {
 
-    if (
-      $("passPlayerName")
-    ) {
-
-      $("passPlayerName")
-        .textContent =
+    if ($("passPlayerName")) {
+      $("passPlayerName").textContent =
         playerOrName;
-
     }
-
   }
 
-
-  showScreen(
-    "passScreen"
-  );
-
+  showScreen("passScreen");
 }
 
 
@@ -5487,30 +5188,24 @@ function continuePass() {
     "night"
   ) {
 
-    state.actionLocked =
-      false;
+    state.actionLocked = false;
 
     showNextNightPlayer();
 
     return;
-
   }
-
 
   if (
     state.passMode ===
     "voting"
   ) {
 
-    state.voteLocked =
-      false;
+    state.voteLocked = false;
 
     showNextVoter();
 
     return;
-
   }
-
 }
 
 
@@ -5518,80 +5213,51 @@ function continuePass() {
    PHOENIX — DEATH HANDLER
    ========================================================= */
 
-function handlePhoenixDeath(
-  player
-) {
+function handlePhoenixDeath(player) {
 
   if (
     !player ||
-    player.role !==
-    "phoenix"
+    player.role !== "phoenix"
   ) {
-
     return false;
-
   }
-
 
   if (
     !state.phoenixStates[player.id]
   ) {
 
     state.phoenixStates[player.id] = {
-
-      used:
-        false,
-
-      pending:
-        false
-
+      used: false,
+      pending: false
     };
-
   }
 
-
   const phoenix =
-    state.phoenixStates[
-      player.id
-    ];
-
+    state.phoenixStates[player.id];
 
   /*
    * أول موت:
-   * تُستهلك القدرة وينتظر حتى الصباح.
+   * تموت مؤقتًا وتعود في الصباح.
    */
 
-  if (
-    !phoenix.used
-  ) {
+  if (!phoenix.used) {
 
-    phoenix.used =
-      true;
+    phoenix.used = true;
+    phoenix.pending = true;
 
-    phoenix.pending =
-      true;
-
-    player.alive =
-      false;
+    player.alive = false;
 
     return true;
-
   }
 
-
   /*
-   * إذا كانت القدرة مستخدمة مسبقًا،
-   * الموت يكون نهائيًا.
+   * الموت الثاني نهائي.
    */
 
-  phoenix.pending =
-    false;
-
-  player.alive =
-    false;
+  phoenix.pending = false;
+  player.alive = false;
 
   return false;
-
 }
 
 
@@ -5601,9 +5267,7 @@ function handlePhoenixDeath(
 
 function revivePendingPhoenixes() {
 
-  const revived =
-    [];
-
+  const revived = [];
 
   state.players.forEach(
     player => {
@@ -5612,53 +5276,40 @@ function revivePendingPhoenixes() {
         player.role !==
         "phoenix"
       ) {
-
         return;
-
       }
 
-
       const phoenix =
-        state.phoenixStates[
-          player.id
-        ];
-
+        state.phoenixStates[player.id];
 
       if (
         !phoenix ||
         !phoenix.pending
       ) {
-
         return;
-
       }
 
+      player.alive = true;
 
-      /*
-       * يعود للحياة في الصباح.
-       */
+      const phoenixSound =
+        $("phoenixReviveSound");
 
-      player.alive =
-        true;
-const phoenixSound = $("phoenixReviveSound");
+      if (phoenixSound) {
 
-if (phoenixSound) {
-  phoenixSound.currentTime = 0;
-  phoenixSound.play().catch(() => {});
-}
-      phoenix.pending =
-        false;
+        phoenixSound.currentTime = 0;
 
-      revived.push(
-        player
-      );
+        phoenixSound
+          .play()
+          .catch(() => {});
+      }
 
+      phoenix.pending = false;
+
+      revived.push(player);
     }
   );
 
-
   return revived;
-
 }
 
 
@@ -5668,392 +5319,310 @@ if (phoenixSound) {
 
 function resolveNight() {
 
-  if (
-    state.nightResolved
-  ) {
-
+  if (state.nightResolved) {
     return;
-
   }
 
+  state.nightResolved = true;
 
-  state.nightResolved =
-    true;
-
-
-  const deaths =
-    new Set();
+  const deaths = new Set();
 
 
-  /*
-   * هجوم المرتزقة
-   */
+  /* =======================================================
+     WEREWOLF ATTACK
+     ======================================================= */
 
-  const wolfVotes =
-    Object.values(
-      state.wolfChoices
-    );
-
-
-  if (
-    wolfVotes.length > 0
-  ) {
-
-    const counts =
-      {};
-
-
-    wolfVotes.forEach(
-      targetId => {
-
-        const target =
-          getPlayer(
-            targetId
-          );
-
-
-        if (
-          !target ||
-          !target.alive
-        ) {
-
-          return;
-
-        }
-
-
-        counts[targetId] =
-          (
-            counts[targetId] ||
-            0
-          ) + 1;
-
-      }
-    );
-
-
-    const values =
-      Object.values(
-        counts
-      );
-
-
-    if (
-      values.length > 0
-    ) {
-
-      const highest =
-        Math.max(
-          ...values
-        );
-
-
-      const winners =
-        Object.keys(
-          counts
-        ).filter(
-          id =>
-            counts[id] ===
-            highest
-        );
-
-
-      if (
-        winners.length ===
-        1
-      ) {
-
-        const wolfTarget =
-  getPlayer(
-    winners[0]
-  );
-
-
-if (
-  wolfTarget
-) {
-
-  /*
-   * 🪤 فخ ناصب الفخاخ
-   *
-   * إذا كان الهدف عليه فخ لهذه الليلة،
-   * يموت القاتل بدل الهدف.
-   */
-
-  /* =========================================================
-   🪤 TRAPPER — TRAP TRIGGER
-   ========================================================= */
-
-let trapTriggered = false;
-
-const trappers =
-  alivePlayers().filter(
-    player =>
-      player.role === "trapper"
-  );
-
-for (const trapper of trappers) {
-
-  const trap =
-    state.trapperStates[
-      trapper.id
-    ];
-
-  if (!trap) {
-    continue;
-  }
-
-  /*
-   * الفخ فعال فقط في الليلة التي
-   * تم وضعه فيها.
-   */
-
-  if (
-    trap.targetId === wolfTarget.id &&
-    trap.targetNight === state.night
-  ) {
-
-    trapTriggered = true;
-
-    /*
-     * 🪤 الفخ انتهى بعد تفعيله
-     */
-
-    trap.targetId = null;
-    trap.targetNight = null;
-
-
-    /*
-     * 🔪 تحديد القاتل/القتلة الذين
-     * هاجموا هذا اللاعب.
-     */
-
-    const attackers = state.players.filter(
+  const aliveWolves =
+    alivePlayers().filter(
       player =>
-        player.alive &&
-        player.role === "werewolf" &&
-        state.wolfChoices[player.id] === wolfTarget.id
+        player.role ===
+        "werewolf"
     );
 
+  const wolfChoices =
+    aliveWolves
+      .map(
+        wolf =>
+          state.wolfChoices[wolf.id]
+      )
+      .filter(
+        targetId => {
 
-    /*
-     * 🪤 قتل القاتل الذي وقع في الفخ
-     */
+          if (!targetId) {
+            return false;
+          }
 
-    attackers.forEach(
-      attacker => {
+          const target =
+            getPlayer(targetId);
 
-        attacker.alive = false;
-
-        showToast(
-          `🕶️ وقع ${attacker.name} في فخ ناصب الفخاخ!`,
-          "success"
-        );
-
-      }
-    );
-
-
-    /*
-     * الضحية تنجو من هجوم القاتل.
-     *
-     * لا نضيفها إلى deaths.
-     */
-
-    deaths.delete(
-      wolfTarget.id
-    );
-
-
-    break;
-  }
-}
-
-
-  if (
-    trapTriggered
-  ) {
-
-    /*
-     * لا نضيف هدف القاتل إلى الوفيات.
-     */
-
-  }
-
-  else if (
-    wolfTarget.role ===
-    "samurai"
-  ) {
-
-    const samuraiState =
-      state.samuraiStates[
-        wolfTarget.id
-      ];
-
-
-    if (
-      samuraiState &&
-      !samuraiState.nightProtectionUsed
-    ) {
-
-      samuraiState.nightProtectionUsed =
-        true;
-
-
-      showToast(
-        "⚔️ الساموراي نجا من هجوم المرتزقة!",
-        "success"
+          return (
+            target &&
+            target.alive &&
+            target.role !== "werewolf"
+          );
+        }
       );
+
+
+  /*
+   * إذا اختار كل القتلة نفس اللاعب:
+   * يموت هذا اللاعب.
+   *
+   * إذا اختلفوا:
+   * - لاعبان مختلفان = 50% لهذا و50% للآخر.
+   * - أكثر من هدفين = اختيار عشوائي بين
+   *   الأهداف المختلفة.
+   *
+   * في جميع الحالات:
+   * ضحية واحدة فقط من هجوم القتلة.
+   */
+
+  if (wolfChoices.length > 0) {
+
+    const uniqueTargets =
+      [...new Set(wolfChoices)];
+
+    let wolfTargetId = null;
+
+    if (uniqueTargets.length === 1) {
+
+      wolfTargetId =
+        uniqueTargets[0];
+
+    } else if (uniqueTargets.length === 2) {
+
+      wolfTargetId =
+        Math.random() < 0.5
+          ? uniqueTargets[0]
+          : uniqueTargets[1];
 
     } else {
 
-      deaths.add(
-        winners[0]
-      );
-
+      wolfTargetId =
+        uniqueTargets[
+          Math.floor(
+            Math.random() *
+            uniqueTargets.length
+          )
+        ];
     }
 
-  }
+    const wolfTarget =
+      getPlayer(wolfTargetId);
 
-  else {
 
-    deaths.add(
-      winners[0]
-    );
+    if (wolfTarget) {
 
-  }
+      let trapTriggered = false;
 
-}
 
+      /* ===================================================
+         TRAPPER
+         =================================================== */
+
+      const trappers =
+        alivePlayers().filter(
+          player =>
+            player.role ===
+            "trapper"
+        );
+
+      for (const trapper of trappers) {
+
+        const trap =
+          state.trapperStates[
+            trapper.id
+          ];
+
+        if (!trap) {
+          continue;
+        }
+
+        if (
+          trap.targetId ===
+            wolfTarget.id &&
+          trap.targetNight ===
+            state.night
+        ) {
+
+          trapTriggered = true;
+
+          /*
+           * الفخ انتهى.
+           */
+
+          trap.targetId = null;
+          trap.targetNight = null;
+
+
+          /*
+           * نقتل فقط القتلة الذين
+           * اختاروا هذا الهدف.
+           */
+
+          aliveWolves.forEach(
+            attacker => {
+
+              if (
+                state.wolfChoices[
+                  attacker.id
+                ] === wolfTarget.id
+              ) {
+
+                attacker.alive = false;
+
+                showToast(
+                  `🕶️ وقع ${attacker.name} في فخ ناصب الفخاخ!`,
+                  "success"
+                );
+              }
+            }
+          );
+
+          break;
+        }
       }
 
-    }
 
+      /* ===================================================
+         SAMURAI
+         =================================================== */
+
+      if (!trapTriggered) {
+
+        if (
+          wolfTarget.role ===
+          "samurai"
+        ) {
+
+          const samuraiState =
+            state.samuraiStates[
+              wolfTarget.id
+            ];
+
+          if (
+            samuraiState &&
+            !samuraiState.nightProtectionUsed
+          ) {
+
+            samuraiState.nightProtectionUsed =
+              true;
+
+            showToast(
+              "⚔️ الساموراي نجا من هجوم المرتزقة!",
+              "success"
+            );
+
+          } else {
+
+            deaths.add(
+              wolfTarget.id
+            );
+          }
+
+        } else {
+
+          deaths.add(
+            wolfTarget.id
+          );
+        }
+      }
+    }
   }
 
 
-  /*
-   * حماية الطبيب
-   */
+  /* =======================================================
+     DOCTOR PROTECTION
+     ======================================================= */
 
   if (
     state.doctorTarget &&
-    deaths.has(
-      state.doctorTarget
-    )
+    deaths.has(state.doctorTarget)
   ) {
 
     deaths.delete(
       state.doctorTarget
     );
-
   }
 
 
-  /*
-   * الحمايات العادية
-   */
+  /* =======================================================
+     NORMAL PROTECTION
+     ======================================================= */
 
-  if (
-    !state.isGroupPotionActive
-  ) {
+  if (!state.isGroupPotionActive) {
 
     state.nightProtectedPlayers
       .forEach(
         id => {
 
-          deaths.delete(
-            id
-          );
+          deaths.delete(id);
 
         }
       );
-
   }
 
 
-  /*
-   * إكسير الشفاء
-   */
+  /* =======================================================
+     WITCH HEAL
+     ======================================================= */
 
-  if (
-    state.isGroupPotionActive
-  ) {
+  if (state.isGroupPotionActive) {
 
     deaths.clear();
-
   }
 
 
-  /*
-   * السم
-   */
+  /* =======================================================
+     POISON
+     ======================================================= */
 
   state.nightPoisonTargets
     .forEach(
       id => {
 
         const target =
-          getPlayer(
-            id
-          );
-
+          getPlayer(id);
 
         if (
           target &&
           target.alive
         ) {
 
-          deaths.add(
-            id
-          );
-
+          deaths.add(id);
         }
-
       }
     );
 
 
-  /*
-   * حفظ الوفيات النهائية
-   */
+  /* =======================================================
+     FINAL NIGHT DEATHS
+     ======================================================= */
 
   state.nightDeaths =
     [...deaths];
 
 
-  /*
-   * قتل اللاعبين
-   */
-
-  const hunterDeaths =
-    [];
+  const hunterDeaths = [];
 
 
   state.nightDeaths.forEach(
     id => {
 
       const player =
-        getPlayer(
-          id
-        );
-
+        getPlayer(id);
 
       if (
         !player ||
         !player.alive
       ) {
-
         return;
-
       }
 
 
-      /*
-       * العنقاء:
-       * إذا كان هذا أول موت لها،
-       * تدخل حالة الانتظار حتى الصباح.
-       */
+      /* =================================================
+         PHOENIX
+         ================================================= */
 
       if (
         player.role ===
@@ -6065,17 +5634,15 @@ for (const trapper of trappers) {
         );
 
         return;
-
       }
 
 
-      player.alive =
-        false;
+      player.alive = false;
 
 
-      /*
-       * الصياد
-       */
+      /* =================================================
+         HUNTER
+         ================================================= */
 
       if (
         player.role ===
@@ -6085,20 +5652,16 @@ for (const trapper of trappers) {
         hunterDeaths.push(
           player
         );
-
       }
-
     }
   );
 
 
-  /*
-   * إذا مات صياد
-   */
+  /* =======================================================
+     HUNTER QUEUE
+     ======================================================= */
 
-  if (
-    hunterDeaths.length > 0
-  ) {
+  if (hunterDeaths.length > 0) {
 
     state.hunterQueue =
       hunterDeaths;
@@ -6106,17 +5669,13 @@ for (const trapper of trappers) {
     state.hunterMode =
       "night";
 
-
     startNextHunterTurn();
 
-
     return;
-
   }
 
 
   finishNightResult();
-
 }
 
 
@@ -6125,6 +5684,31 @@ for (const trapper of trappers) {
    ========================================================= */
 
 function startNextHunterTurn() {
+
+  /*
+   * حذف أي صياد لم يعد حيًا من الطابور.
+   */
+
+  while (
+    state.hunterQueue.length > 0
+  ) {
+
+    const possibleHunter =
+      state.hunterQueue[0];
+
+    if (
+      possibleHunter &&
+      !possibleHunter.alive
+    ) {
+
+      state.hunterQueue.shift();
+
+      continue;
+    }
+
+    break;
+  }
+
 
   if (
     state.hunterQueue.length ===
@@ -6141,24 +5725,20 @@ function startNextHunterTurn() {
     } else {
 
       finishVoteResult();
-
     }
 
     return;
-
   }
 
 
   const hunter =
     state.hunterQueue.shift();
 
-
   if (!hunter) {
 
     startNextHunterTurn();
 
     return;
-
   }
 
 
@@ -6170,6 +5750,9 @@ function startNextHunterTurn() {
 
   state.actionLocked =
     false;
+
+  state.currentAction =
+    "hunter";
 
 
   $("actionPlayerName")
@@ -6190,70 +5773,55 @@ function startNextHunterTurn() {
 
 
   $("confirmActionBtn")
-    ?.classList.add(
-      "hidden"
-    );
+    ?.classList.remove("hidden");
+
+  $("confirmActionBtn")
+    ?.removeAttribute("disabled");
 
 
   $("skipActionBtn")
-    ?.classList.remove(
-      "hidden"
-    );
-
+    ?.classList.remove("hidden");
 
   $("skipActionBtn")
-    ?.removeAttribute(
-      "disabled"
-    );
+    ?.removeAttribute("disabled");
 
 
   updatePlayerAvatars();
 
 
   renderTargets(
-
     alivePlayers().filter(
-      player =>
-        player.id !==
-        hunter.id
+      target =>
+        target.id !== hunter.id
     ),
-
     true
-
   );
-
-
-  state.currentAction =
-    "hunter";
 
 
   showScreen(
     "actionScreen"
   );
-
 }
 
 
+/* =========================================================
+   HUNTER CONFIRM
+   ========================================================= */
+
 function handleHunterConfirm() {
 
-  if (
-    state.actionLocked
-  ) {
-
+  if (state.actionLocked) {
     return;
-
   }
-
 
   const hunter =
     state.currentPlayer;
 
-  if (!hunter) return;
+  if (!hunter) {
+    return;
+  }
 
-
-  if (
-    !state.selectedTarget
-  ) {
+  if (!state.selectedTarget) {
 
     showToast(
       "اختر لاعبًا أولًا",
@@ -6261,94 +5829,100 @@ function handleHunterConfirm() {
     );
 
     return;
-
   }
 
-
-  state.actionLocked =
-    true;
-
-
   const target =
-    getPlayer(
-      state.selectedTarget
+    getPlayer(state.selectedTarget);
+
+  if (
+    !target ||
+    !target.alive ||
+    target.id === hunter.id
+  ) {
+
+    state.selectedTarget = null;
+
+    showToast(
+      "هذا اللاعب غير متاح",
+      "error"
+    );
+
+    return;
+  }
+
+  state.actionLocked = true;
+
+  $("confirmActionBtn")
+    ?.setAttribute(
+      "disabled",
+      "disabled"
     );
 
 
+  /*
+   * العنقاء:
+   * موت أول = انتظار حتى الصباح.
+   */
+
   if (
-    target &&
-    target.alive
+    target.role ===
+    "phoenix"
   ) {
 
-    /*
-     * إذا كان الهدف عنقاء ولم تستخدم قدرتها،
-     * يموت مؤقتًا حتى الصباح.
-     */
-
-    if (
-      target.role ===
-      "phoenix"
-    ) {
-
+    const revivedLater =
       handlePhoenixDeath(
         target
       );
 
-
-      if (
-        state.hunterMode ===
+    if (
+      state.hunterMode ===
         "night" &&
-        !state.nightDeaths.includes(
-          target.id
-        )
-      ) {
+      !state.nightDeaths.includes(
+        target.id
+      )
+    ) {
 
-        state.nightDeaths.push(
-          target.id
-        );
-
-      }
-
-    } else {
-
-      target.alive =
-        false;
-
-
-      if (
-        target.role ===
-        "hunter"
-      ) {
-
-        state.hunterQueue.push(
-          target
-        );
-
-      }
-
-
-      if (
-        state.hunterMode ===
-        "night" &&
-        !state.nightDeaths.includes(
-          target.id
-        )
-      ) {
-
-        state.nightDeaths.push(
-          target.id
-        );
-
-      }
-
+      state.nightDeaths.push(
+        target.id
+      );
     }
 
+  } else {
+
+    target.alive = false;
+
+    /*
+     * إذا قتل الصياد صيادًا آخر،
+     * يدخل الصياد الجديد في الطابور.
+     */
+
+    if (
+      target.role ===
+      "hunter"
+    ) {
+
+      state.hunterQueue.push(
+        target
+      );
+    }
+
+    if (
+      state.hunterMode ===
+        "night" &&
+      !state.nightDeaths.includes(
+        target.id
+      )
+    ) {
+
+      state.nightDeaths.push(
+        target.id
+      );
+    }
   }
 
 
   state.selectedTarget =
     null;
-
 
   $("confirmActionBtn")
     ?.removeAttribute(
@@ -6357,7 +5931,6 @@ function handleHunterConfirm() {
 
 
   startNextHunterTurn();
-
 }
 
 
@@ -6367,21 +5940,19 @@ function handleHunterConfirm() {
 
 function handleHunterSkip() {
 
-  if (
-    state.actionLocked
-  ) {
-
+  if (state.actionLocked) {
     return;
-
   }
 
+  state.actionLocked = true;
 
-  state.actionLocked =
-    true;
-
+  $("skipActionBtn")
+    ?.setAttribute(
+      "disabled",
+      "disabled"
+    );
 
   startNextHunterTurn();
-
 }
 
 
@@ -6391,81 +5962,45 @@ function handleHunterSkip() {
 
 function finishNightResult() {
 
-  /*
-   * 🌅 نتيجة الليل
-   *
-   * العنقاء لا تعود هنا.
-   * تبقى ميتة حتى انتهاء التصويت.
-   */
-
   const deaths =
     state.nightDeaths
-      .map(
-        id =>
-          getPlayer(id)
-      )
-      .filter(
-        player =>
-          player
-      );
+      .map(id => getPlayer(id))
+      .filter(player => player);
 
 
-  if (
-    deaths.length ===
-    0
-  ) {
+  if (deaths.length === 0) {
 
-    if (
-      $("nightResultText")
-    ) {
+    if ($("nightResultText")) {
 
-      $("nightResultText")
-        .innerHTML = `
-
-          🌙 مرت الليلة بسلام.
-
-          <br>
-
-          لم يمت أي لاعب.
-
-        `;
-
+      $("nightResultText").innerHTML = `
+        🌙 مرت الليلة بسلام.
+        <br>
+        لم يمت أي لاعب.
+      `;
     }
 
   } else {
 
-    let html = `
-
+    const html = `
       مات هذه الليلة:
 
       <br><br>
 
-      ${deaths.map(
-        player =>
-          `
-
+      ${deaths
+        .map(
+          player => `
             <strong>
-              💀 ${escapeHTML(
-                player.name
-              )}
+              💀 ${escapeHTML(player.name)}
             </strong>
-
           `
-      ).join("<br>")}
-
+        )
+        .join("<br>")}
     `;
 
-
-    if (
-      $("nightResultText")
-    ) {
-
-      $("nightResultText")
-        .innerHTML =
+    if ($("nightResultText")) {
+      $("nightResultText").innerHTML =
         html;
-
     }
-
   }
 
 
@@ -6474,20 +6009,12 @@ function finishNightResult() {
   );
 
 
-  /*
-   * لا نفحص الفوز هنا إذا كانت العنقاء
-   * تنتظر العودة.
-   */
-
-  if (
-    checkWinner()
-  ) {
-
+  if (checkWinner()) {
     return;
-
   }
-
 }
+
+
 /* =========================================================
    DISCUSSION
    ========================================================= */
@@ -6498,18 +6025,14 @@ function startDiscussion() {
     state.discussionInterval
   );
 
-
   state.discussionSeconds =
     120;
 
-
   updateTimer();
-
 
   showScreen(
     "discussionScreen"
   );
-
 
   state.discussionInterval =
     setInterval(
@@ -6518,7 +6041,6 @@ function startDiscussion() {
         state.discussionSeconds--;
 
         updateTimer();
-
 
         if (
           state.discussionSeconds <=
@@ -6532,59 +6054,45 @@ function startDiscussion() {
           state.discussionInterval =
             null;
 
-
           showToast(
             "انتهى وقت النقاش",
             "error"
           );
 
-
           startVoting();
-
         }
 
       },
       1000
     );
-
 }
 
+
+/* =========================================================
+   UPDATE TIMER
+   ========================================================= */
 
 function updateTimer() {
 
   const min =
     Math.floor(
-      state.discussionSeconds /
-      60
+      state.discussionSeconds / 60
     )
       .toString()
-      .padStart(
-        2,
-        "0"
-      );
-
+      .padStart(2, "0");
 
   const sec =
     (
-      state.discussionSeconds %
-      60
+      state.discussionSeconds % 60
     )
       .toString()
-      .padStart(
-        2,
-        "0"
-      );
+      .padStart(2, "0");
 
-
-  if (
-    $("timer")
-  ) {
+  if ($("timer")) {
 
     $("timer").textContent =
       `${min}:${sec}`;
-
   }
-
 }
 
 
@@ -6594,14 +6102,9 @@ function updateTimer() {
 
 function startVoting() {
 
-  if (
-    state.votingResolved
-  ) {
-
+  if (state.votingResolved) {
     return;
-
   }
-
 
   clearInterval(
     state.discussionInterval
@@ -6611,35 +6114,38 @@ function startVoting() {
     null;
 
 
+  /*
+   * مهم:
+   * لا نرتب الأسماء أبجديًا.
+   *
+   * الترتيب يبقى:
+   * لاعب 1
+   * لاعب 2
+   * لاعب 3
+   * ...
+   *
+   * حسب ترتيب إدخال اللاعبين.
+   */
+
   state.votingOrder =
-    [...alivePlayers()]
-      .sort(
-        (a, b) =>
-          a.name.localeCompare(
-            b.name,
-            "ar"
-          )
-      );
+    state.players.filter(
+      player =>
+        player.alive
+    );
 
 
-  state.votingIndex =
-    0;
+  state.votingIndex = 0;
 
-  state.votes =
-    {};
+  state.votes = {};
 
-  state.selectedVote =
-    null;
+  state.selectedVote = null;
 
-  state.votingResolved =
-    false;
+  state.votingResolved = false;
 
-  state.voteLocked =
-    false;
+  state.voteLocked = false;
 
 
   showNextVoter();
-
 }
 
 
@@ -6649,14 +6155,9 @@ function startVoting() {
 
 function showNextVoter() {
 
-  if (
-    state.votingResolved
-  ) {
-
+  if (state.votingResolved) {
     return;
-
   }
-
 
   while (
     state.votingIndex <
@@ -6668,21 +6169,15 @@ function showNextVoter() {
         state.votingIndex
       ];
 
-
     if (
       voter &&
-      getPlayer(
-        voter.id
-      )?.alive
+      getPlayer(voter.id)?.alive
     ) {
 
       break;
-
     }
 
-
     state.votingIndex++;
-
   }
 
 
@@ -6694,7 +6189,6 @@ function showNextVoter() {
     resolveVotes();
 
     return;
-
   }
 
 
@@ -6702,7 +6196,6 @@ function showNextVoter() {
     state.votingOrder[
       state.votingIndex
     ];
-
 
   state.currentPlayer =
     voter;
@@ -6731,21 +6224,15 @@ function showNextVoter() {
 
 
   $("confirmVoteBtn")
-    ?.classList.add(
-      "hidden"
-    );
-
+    ?.classList.add("hidden");
 
   $("confirmVoteBtn")
-    ?.removeAttribute(
-      "disabled"
-    );
+    ?.removeAttribute("disabled");
 
 
   showScreen(
     "votingScreen"
   );
-
 }
 
 
@@ -6753,14 +6240,14 @@ function showNextVoter() {
    VOTING TARGETS
    ========================================================= */
 
-function renderVotingTargets(
-  voter
-) {
+function renderVotingTargets(voter) {
 
   const container =
     $("votingTargets");
 
-  if (!container) return;
+  if (!container) {
+    return;
+  }
 
 
   const targets =
@@ -6772,62 +6259,59 @@ function renderVotingTargets(
 
 
   container.innerHTML =
-    targets.map(
-      player => `
+    targets
+      .map(
+        player => `
+          <button
+            class="target-btn"
+            data-vote-id="${player.id}"
+            type="button"
+          >
 
-        <button
-          class="target-btn"
-          data-vote-id="${player.id}"
-          type="button"
-        >
+            <span class="target-player-info">
 
-          <span class="target-player-info">
+              ${
+                player.avatar
+                  ? `
+                    <img
+                      src="${escapeHTML(
+                        player.avatar
+                      )}"
+                      alt=""
+                      class="target-avatar"
+                    >
+                  `
+                  : `
+                    <span
+                      class="target-avatar target-avatar-empty"
+                    >
+                      👤
+                    </span>
+                  `
+              }
 
-            ${
-              player.avatar
-                ? `
+              <span>
+                ${escapeHTML(
+                  player.name
+                )}
+              </span>
 
-                  <img
-                    src="${escapeHTML(
-                      player.avatar
-                    )}"
-                    alt=""
-                    class="target-avatar"
-                  >
-
-                `
-                : `
-
-                  <span class="target-avatar target-avatar-empty">
-                    👤
-                  </span>
-
-                `
-            }
-
-            <span>
-              ${escapeHTML(
-                player.name
-              )}
             </span>
 
-          </span>
+            <span>
+              🗳️
+            </span>
 
-          <span>
-            🗳️
-          </span>
-
-        </button>
-
-      `
-    ).join("");
+          </button>
+        `
+      )
+      .join("");
 
 
   const skip =
     document.createElement(
       "button"
     );
-
 
   skip.className =
     "target-btn";
@@ -6838,9 +6322,7 @@ function renderVotingTargets(
   skip.dataset.voteId =
     "SKIP";
 
-
   skip.innerHTML = `
-
     <span>
       ⏭️ تخطي التصويت
     </span>
@@ -6848,67 +6330,63 @@ function renderVotingTargets(
     <span>
       —
     </span>
-
   `;
-
 
   container.appendChild(
     skip
   );
 
 
-  container
-    .querySelectorAll(
-      ".target-btn"
-    )
-    .forEach(
-      button => {
+  /*
+   * Event delegation:
+   * Listener واحد فقط بدل Listener لكل زر.
+   *
+   * هذا يقلل الحمل على DOM
+   * خصوصًا عندما يكون عدد اللاعبين كبيرًا.
+   */
 
-        button.addEventListener(
-          "click",
-          () => {
+  container.onclick =
+    function(event) {
 
-            if (
-              state.voteLocked
-            ) {
-
-              return;
-
-            }
-
-
-            container
-              .querySelectorAll(
-                ".target-btn"
-              )
-              .forEach(
-                btn =>
-                  btn.classList.remove(
-                    "selected"
-                  )
-              );
-
-
-            button.classList.add(
-              "selected"
-            );
-
-
-            state.selectedVote =
-              button.dataset.voteId;
-
-
-            $("confirmVoteBtn")
-              ?.classList.remove(
-                "hidden"
-              );
-
-          }
+      const button =
+        event.target.closest(
+          ".target-btn"
         );
 
+      if (
+        !button ||
+        !container.contains(button)
+      ) {
+        return;
       }
-    );
 
+      if (state.voteLocked) {
+        return;
+      }
+
+      container
+        .querySelectorAll(
+          ".target-btn"
+        )
+        .forEach(
+          btn =>
+            btn.classList.remove(
+              "selected"
+            )
+        );
+
+      button.classList.add(
+        "selected"
+      );
+
+      state.selectedVote =
+        button.dataset.voteId;
+
+      $("confirmVoteBtn")
+        ?.classList.remove(
+          "hidden"
+        );
+    };
 }
 
 
@@ -6919,26 +6397,13 @@ function renderVotingTargets(
 function confirmVote() {
 
   if (
-    state.voteLocked
-  ) {
-
-    return;
-
-  }
-
-
-  if (
+    state.voteLocked ||
     state.votingResolved
   ) {
-
     return;
-
   }
 
-
-  if (
-    !state.selectedVote
-  ) {
+  if (!state.selectedVote) {
 
     showToast(
       "اختر تصويتك أولًا",
@@ -6946,27 +6411,70 @@ function confirmVote() {
     );
 
     return;
-
   }
-
 
   const voter =
     state.currentPlayer;
-
 
   if (
     !voter ||
     !voter.alive
   ) {
+    return;
+  }
+
+
+  /*
+   * تحقق إضافي لمنع التصويت على لاعب
+   * لم يعد حيًا.
+   */
+
+  if (
+    state.selectedVote !==
+    "SKIP"
+  ) {
+
+    const target =
+      getPlayer(
+        state.selectedVote
+      );
+
+    if (
+      !target ||
+      !target.alive ||
+      target.id === voter.id
+    ) {
+
+      state.selectedVote =
+        null;
+
+      showToast(
+        "هذا اللاعب لم يعد متاحًا",
+        "error"
+      );
+
+      return;
+    }
+  }
+
+
+  /*
+   * منع تكرار تصويت اللاعب.
+   */
+
+  if (
+    Object.prototype.hasOwnProperty.call(
+      state.votes,
+      voter.id
+    )
+  ) {
 
     return;
-
   }
 
 
   state.voteLocked =
     true;
-
 
   $("confirmVoteBtn")
     ?.setAttribute(
@@ -6975,31 +6483,14 @@ function confirmVote() {
     );
 
 
-  if (
-    Object.prototype
-      .hasOwnProperty.call(
-        state.votes,
-        voter.id
-      )
-  ) {
-
-    return;
-
-  }
-
-
-  state.votes[
-    voter.id
-  ] =
+  state.votes[voter.id] =
     state.selectedVote;
 
 
-  audioSystem
-    .playVotingSound();
+  audioSystem.playVotingSound();
 
 
   state.votingIndex++;
-
 
   state.selectedVote =
     null;
@@ -7013,33 +6504,15 @@ function confirmVote() {
     resolveVotes();
 
     return;
-
-  }
-
-
-  const nextVoter =
-    state.votingOrder[
-      state.votingIndex
-    ];
-
-
-  if (
-    !nextVoter ||
-    !nextVoter.alive
-  ) {
-
-    showNextVoter();
-
-    return;
-
   }
 
 
   showPassScreen(
-    nextVoter,
+    state.votingOrder[
+      state.votingIndex
+    ],
     "voting"
   );
-
 }
 
 
@@ -7049,14 +6522,9 @@ function confirmVote() {
 
 function resolveVotes() {
 
-  if (
-    state.votingResolved
-  ) {
-
+  if (state.votingResolved) {
     return;
-
   }
-
 
   state.votingResolved =
     true;
@@ -7065,8 +6533,7 @@ function resolveVotes() {
     true;
 
 
-  const counts =
-    {};
+  const counts = {};
 
 
   Object.values(
@@ -7074,38 +6541,22 @@ function resolveVotes() {
   ).forEach(
     vote => {
 
-      if (
-        vote ===
-        "SKIP"
-      ) {
-
+      if (vote === "SKIP") {
         return;
-
       }
 
-
       const target =
-        getPlayer(
-          vote
-        );
-
+        getPlayer(vote);
 
       if (
         !target ||
         !target.alive
       ) {
-
         return;
-
       }
 
-
       counts[vote] =
-        (
-          counts[vote] ||
-          0
-        ) + 1;
-
+        (counts[vote] || 0) + 1;
     }
   );
 
@@ -7115,8 +6566,7 @@ function resolveVotes() {
       state.votes
     ).filter(
       vote =>
-        vote ===
-        "SKIP"
+        vote === "SKIP"
     ).length;
 
 
@@ -7131,8 +6581,7 @@ function resolveVotes() {
 
 
   if (
-    candidates.length >
-    0
+    candidates.length > 0
   ) {
 
     const highest =
@@ -7149,8 +6598,7 @@ function resolveVotes() {
       candidates
         .filter(
           ([_, count]) =>
-            count ===
-            highest
+            count === highest
         )
         .map(
           ([id]) =>
@@ -7166,72 +6614,44 @@ function resolveVotes() {
       winners.push(
         "SKIP"
       );
-
     }
 
 
     if (
-      winners.length ===
-      1 &&
-      winners[0] !==
-      "SKIP"
+      winners.length === 1 &&
+      winners[0] !== "SKIP"
     ) {
 
       eliminatedId =
         winners[0];
-
     }
-
-  } else if (
-    skipCount > 0
-  ) {
-
-    eliminatedId =
-      null;
-
   }
 
 
-  /*
-   * لا يوجد خروج
-   */
+  if (!eliminatedId) {
 
-  if (
-    !eliminatedId
-  ) {
+    if ($("voteResultText")) {
 
-    if (
-      $("voteResultText")
-    ) {
+      $("voteResultText").innerHTML = `
+        ⚖️ لم يتم إخراج أي لاعب.
 
-      $("voteResultText")
-        .innerHTML = `
+        <br><br>
 
-          ⚖️ لم يتم إخراج أي لاعب.
-
-          <br><br>
-
-          حدث تعادل أو حصل التخطي
-          على أعلى عدد من الأصوات.
-
-        `;
-
+        حدث تعادل أو حصل التخطي
+        على أعلى عدد من الأصوات.
+      `;
     }
-
 
     showScreen(
       "voteResultScreen"
     );
 
     return;
-
   }
 
 
   const eliminated =
-    getPlayer(
-      eliminatedId
-    );
+    getPlayer(eliminatedId);
 
 
   if (
@@ -7244,17 +6664,12 @@ function resolveVotes() {
     );
 
     return;
-
   }
 
 
-  /*
-   * 🦅 العنقاء
-   *
-   * إذا كانت هذه أول وفاة لها،
-   * لا تموت نهائيًا.
-   * تبقى ميتة حتى الصباح التالي.
-   */
+  /* =======================================================
+     PHOENIX
+     ======================================================= */
 
   if (
     eliminated.role ===
@@ -7267,43 +6682,35 @@ function resolveVotes() {
       );
 
 
-    if (
-      revivedLater
-    ) {
+    if (revivedLater) {
 
-      if (
-        $("voteResultText")
-      ) {
+      if ($("voteResultText")) {
 
-        $("voteResultText")
-          .innerHTML = `
+        $("voteResultText").innerHTML = `
+          🦅 خرج من التصويت:
 
-            🦅 خرج من التصويت:
+          <br><br>
 
-            <br><br>
+          <strong>
+            ${escapeHTML(
+              eliminated.name
+            )}
+          </strong>
 
-            <strong>
-              ${escapeHTML(
-                eliminated.name
-              )}
-            </strong>
+          <br><br>
 
-            <br><br>
+          دوره كان:
 
-            دوره كان:
+          🦅 العنقاء
 
-            🦅 العنقاء
+          <br><br>
 
-            <br><br>
+          ✨ لقد استُخدمت قدرتها.
 
-            ✨ لقد استُخدمت قدرتها.
+          <br>
 
-            <br>
-
-            ستعود إلى الحياة في الصباح التالي.
-
-          `;
-
+          ستعود إلى الحياة في الصباح التالي.
+        `;
       }
 
 
@@ -7318,55 +6725,46 @@ function resolveVotes() {
       );
 
       return;
-
     }
-
   } else {
 
     eliminated.alive =
       false;
-
   }
 
 
-  /*
-   * ⚔️ الساموراي
-   */
+  /* =======================================================
+     SAMURAI
+     ======================================================= */
 
   if (
     eliminated.role ===
     "samurai"
   ) {
 
-    if (
-      $("voteResultText")
-    ) {
+    if ($("voteResultText")) {
 
-      $("voteResultText")
-        .innerHTML = `
+      $("voteResultText").innerHTML = `
+        ⚔️ خرج من اللعبة:
 
-          ⚔️ خرج من اللعبة:
+        <br><br>
 
-          <br><br>
+        <strong>
+          ${escapeHTML(
+            eliminated.name
+          )}
+        </strong>
 
-          <strong>
-            ${escapeHTML(
-              eliminated.name
-            )}
-          </strong>
+        <br><br>
 
-          <br><br>
+        دوره كان:
 
-          دوره كان:
+        ⚔️ الساموراي
 
-          ⚔️ الساموراي
+        <br><br>
 
-          <br><br>
-
-          لديه مبارزة أخيرة قبل انتهاء دوره.
-
-        `;
-
+        لديه مبارزة أخيرة قبل انتهاء دوره.
+      `;
     }
 
 
@@ -7382,42 +6780,35 @@ function resolveVotes() {
     );
 
     return;
-
   }
 
 
-  /*
-   * الصياد
-   */
+  /* =======================================================
+     HUNTER
+     ======================================================= */
 
   if (
     eliminated.role ===
     "hunter"
   ) {
 
-    if (
-      $("voteResultText")
-    ) {
+    if ($("voteResultText")) {
 
-      $("voteResultText")
-        .innerHTML = `
+      $("voteResultText").innerHTML = `
+        💀 خرج
 
-          💀 خرج
+        <strong>
+          ${escapeHTML(
+            eliminated.name
+          )}
+        </strong>
 
-          <strong>
-            ${escapeHTML(
-              eliminated.name
-            )}
-          </strong>
+        من اللعبة.
 
-          من اللعبة.
+        <br><br>
 
-          <br><br>
-
-          لكنه صياد، لذلك لديه فرصة أخيرة.
-
-        `;
-
+        لكنه صياد، لذلك لديه فرصة أخيرة.
+      `;
     }
 
 
@@ -7433,49 +6824,41 @@ function resolveVotes() {
     );
 
     return;
-
   }
 
 
   const role =
-    getRole(
-      eliminated
-    );
+    getRole(eliminated);
 
 
-  if (
-    $("voteResultText")
-  ) {
+  if ($("voteResultText")) {
 
-    $("voteResultText")
-      .innerHTML = `
+    $("voteResultText").innerHTML = `
+      💀 خرج من اللعبة:
 
-        💀 خرج من اللعبة:
+      <br><br>
 
-        <br><br>
+      <strong>
+        ${escapeHTML(
+          eliminated.name
+        )}
+      </strong>
 
-        <strong>
-          ${escapeHTML(
-            eliminated.name
-          )}
-        </strong>
+      <br><br>
 
-        <br><br>
+      دوره كان:
 
-        دوره كان:
-
-        ${role.icon}
-        ${role.name}
-
-      `;
-
+      ${role?.icon || "❓"}
+      ${escapeHTML(
+        role?.name || "غير معروف"
+      )}
+    `;
   }
 
 
   showScreen(
     "voteResultScreen"
   );
-
 }
 
 
@@ -7486,7 +6869,7 @@ function resolveVotes() {
 function continueAfterVote() {
 
   /*
-   * مبارزة الساموراي
+   * الساموراي أولًا
    */
 
   if (
@@ -7500,19 +6883,16 @@ function continueAfterVote() {
     startSamuraiDuel();
 
     return;
-
   }
 
 
   /*
-   * صياد التصويت
+   * الصياد
    */
 
   if (
-    state.hunterMode ===
-      "vote" &&
-    state.hunterQueue.length >
-      0
+    state.hunterMode === "vote" &&
+    state.hunterQueue.length > 0
   ) {
 
     state.actionLocked =
@@ -7521,15 +6901,11 @@ function continueAfterVote() {
     startNextHunterTurn();
 
     return;
-
   }
 
 
   /*
-   * 🦅 العنقاء
-   *
-   * إذا كانت تنتظر العودة، ترجع الآن
-   * بعد انتهاء التصويت وقبل بداية الليل الجديد.
+   * العنقاء تعود قبل بداية الليل الجديد.
    */
 
   const revivedPhoenixes =
@@ -7537,8 +6913,7 @@ function continueAfterVote() {
 
 
   if (
-    revivedPhoenixes.length >
-    0
+    revivedPhoenixes.length > 0
   ) {
 
     const names =
@@ -7552,70 +6927,46 @@ function continueAfterVote() {
         .join("، ");
 
 
-    /*
-     * إظهار رسالة داخل نتيجة التصويت
-     */
+    if ($("voteResultText")) {
 
-    if (
-      $("voteResultText")
-    ) {
+      $("voteResultText").innerHTML += `
+        <br><br>
 
-      $("voteResultText")
-        .innerHTML += `
+        🦅 <strong>
+          العنقاء عادت إلى الحياة!
+        </strong>
 
-          <br><br>
+        <br>
 
-          🦅 <strong>
-            العنقاء عادت إلى الحياة!
-          </strong>
+        ${names}
 
-          <br>
-
-          ${names}
-
-          عادت إلى المباراة.
-
-        `;
-
+        عادت إلى المباراة.
+      `;
     }
 
 
-    /*
-     * إشعار داخل اللعبة
-     */
-
     showToast(
-      `🦅 العنقاء عادت إلى المباراة!`,
+      "🦅 العنقاء عادت إلى المباراة!",
       "success"
     );
-
   }
 
 
-  /*
-   * الفائز
-   *
-   * الآن بعد رجوع العنقاء،
-   * يتم فحص الفوز من جديد.
-   */
-
-  if (
-    checkWinner()
-  ) {
-
+  if (checkWinner()) {
     return;
-
   }
 
-
-  /*
-   * ليلة جديدة
-   */
 
   state.hunterMode =
     null;
 
   state.hunterQueue =
+    [];
+
+  state.samuraiMode =
+    false;
+
+  state.samuraiQueue =
     [];
 
   state.voteLocked =
@@ -7630,8 +6981,9 @@ function continueAfterVote() {
   state.night++;
 
   beginNight();
-
 }
+
+
 /* =========================================================
    SAMURAI DUEL
    ========================================================= */
@@ -7639,14 +6991,14 @@ function continueAfterVote() {
 function startSamuraiDuel() {
 
   if (
-    state.samuraiQueue.length === 0
+    state.samuraiQueue.length ===
+    0
   ) {
 
     state.samuraiMode =
       false;
 
     return;
-
   }
 
 
@@ -7654,14 +7006,24 @@ function startSamuraiDuel() {
     state.samuraiQueue.shift();
 
 
-  if (
-    !samurai
-  ) {
+  if (!samurai) {
 
     startSamuraiDuel();
 
     return;
+  }
 
+
+  /*
+   * إذا مات الساموراي بالفعل،
+   * لا نفتح له المبارزة.
+   */
+
+  if (!samurai.alive) {
+
+    startSamuraiDuel();
+
+    return;
   }
 
 
@@ -7673,6 +7035,9 @@ function startSamuraiDuel() {
 
   state.actionLocked =
     false;
+
+  state.currentAction =
+    "samurai-duel";
 
 
   $("actionPlayerName")
@@ -7693,7 +7058,7 @@ function startSamuraiDuel() {
 
 
   $("confirmActionBtn")
-    ?.classList.add(
+    ?.classList.remove(
       "hidden"
     );
 
@@ -7706,11 +7071,6 @@ function startSamuraiDuel() {
   $("skipActionBtn")
     ?.classList.add(
       "hidden"
-    );
-
-  $("skipActionBtn")
-    ?.removeAttribute(
-      "disabled"
     );
 
 
@@ -7731,14 +7091,9 @@ function startSamuraiDuel() {
   );
 
 
-  state.currentAction =
-    "samurai-duel";
-
-
   showScreen(
     "actionScreen"
   );
-
 }
 
 
@@ -7751,35 +7106,22 @@ function finishVoteResult() {
   state.hunterMode =
     null;
 
-
-  if (
-    checkWinner()
-  ) {
-
+  if (checkWinner()) {
     return;
-
   }
 
+  if ($("voteResultText")) {
 
-  if (
-    $("voteResultText")
-  ) {
-
-    $("voteResultText")
-      .innerHTML += `
-
-        <br><br>
-        انتهى التصويت.
-
-      `;
-
+    $("voteResultText").innerHTML += `
+      <br><br>
+      انتهى التصويت.
+    `;
   }
 
 
   showScreen(
     "voteResultScreen"
   );
-
 }
 
 
@@ -7790,8 +7132,8 @@ function finishVoteResult() {
 function checkWinner() {
 
   /*
-   * العنقاء إذا كانت بانتظار العودة،
-   * نؤجل إعلان الفائز إلى الصباح.
+   * إذا كانت عنقاء تنتظر العودة،
+   * لا نعلن الفائز الآن.
    */
 
   const phoenixWaiting =
@@ -7805,12 +7147,8 @@ function checkWinner() {
     );
 
 
-  if (
-    phoenixWaiting
-  ) {
-
+  if (phoenixWaiting) {
     return false;
-
   }
 
 
@@ -7821,47 +7159,31 @@ function checkWinner() {
     getAliveVillagers().length;
 
 
-  if (
-    wolves === 0
-  ) {
+  if (wolves === 0) {
 
     showWinner(
-
       "القرية",
-
       "🏘️",
-
       "فاز فريق القرية!"
-
     );
 
     return true;
-
   }
 
 
-  if (
-    wolves >=
-    villagers
-  ) {
+  if (wolves >= villagers) {
 
     showWinner(
-
       "المرتزقة",
-
       "🔪",
-
       "فاز فريق المرتزقة!"
-
     );
 
     return true;
-
   }
 
 
   return false;
-
 }
 
 
@@ -7883,39 +7205,29 @@ function showWinner(
     null;
 
 
-  if (
-    $("winnerIcon")
-  ) {
+  if ($("winnerIcon")) {
 
     $("winnerIcon")
       .textContent =
       icon;
-
   }
 
 
-  if (
-    $("winnerTitle")
-  ) {
+  if ($("winnerTitle")) {
 
     $("winnerTitle")
       .textContent =
-      team ===
-      "المرتزقة"
+      team === "المرتزقة"
         ? "فوز المرتزقة"
         : "فوز القرية";
-
   }
 
 
-  if (
-    $("winnerDescription")
-  ) {
+  if ($("winnerDescription")) {
 
     $("winnerDescription")
       .textContent =
       description;
-
   }
 
 
@@ -7927,9 +7239,7 @@ function showWinner(
   if (
     audioSystem.isUserMuted
   ) {
-
     return;
-
   }
 
 
@@ -7954,16 +7264,11 @@ function showWinner(
     mercenariesMusic.loop =
       false;
 
-    mercenariesMusic.play()
+    mercenariesMusic
+      .play()
       .catch(() => {});
 
-  }
-
-
-  else if (
-    team ===
-    "القرية"
-  ) {
+  } else {
 
     villageMusic.currentTime =
       0;
@@ -7974,11 +7279,10 @@ function showWinner(
     villageMusic.loop =
       false;
 
-    villageMusic.play()
+    villageMusic
+      .play()
       .catch(() => {});
-
   }
-
 }
 
 
@@ -7988,38 +7292,35 @@ function showWinner(
 
 function newGame() {
 
+  /*
+   * اللعبة الجديدة تبدأ من الصفر،
+   * لذلك هنا نمسح اللاعبين أيضًا.
+   */
+
   resetGameData();
 
 
   state.activeRoles = {
 
-    werewolf:
-      true,
+    werewolf: true,
 
-    samurai:
-      false,
+    samurai: false,
 
-    doctor:
-      true,
+    doctor: true,
 
-    seer:
-      true,
+    seer: true,
 
-    witch:
-      true,
+    witch: true,
 
-    hunter:
-      true,
+    hunter: true,
 
-    phoenix:
-      false,
+    phoenix: false,
 
-    philosopher:
-      false,
+    philosopher: false,
 
-    villager:
-      false
+    trapper: false,
 
+    villager: false
   };
 
 
@@ -8042,7 +7343,6 @@ function newGame() {
   showScreen(
     "playersScreen"
   );
-
 }
 
 
@@ -8056,12 +7356,10 @@ function showRules() {
 
     "طريقة اللعب",
 
-    "أولًا أضف اللاعبين والصور. بعدها اختر الأدوار التي تريدها واختر بين التوزيع العشوائي أو اليدوي. في التوزيع العشوائي يمكن أن تتكرر الأدوار، والقروي ليس مضمونًا. العنقاء إذا ماتت تعود إلى الحياة في الصباح التالي مرة واحدة فقط. الفيلسوف يزور لاعبًا مرة أولى دون معرفة معلومات عنه، ثم يجب أن يعود إلى اللاعب نفسه في ليلة لاحقة ليعرف دوره وقدرته وما فعله في الزيارة السابقة. في التوزيع اليدوي تختار دور كل لاعب بنفسك. بعد بدء اللعبة سيكشف كل لاعب دوره بشكل سري، ثم تبدأ أدوار الليل والنقاش والتصويت حتى يفوز أحد الفريقين.",
+    "أولًا أضف اللاعبين والصور. بعدها اختر الأدوار التي تريدها واختر بين التوزيع العشوائي أو اليدوي. في التوزيع العشوائي يمكن أن تتكرر الأدوار. العنقاء إذا ماتت تعود إلى الحياة في الصباح التالي مرة واحدة فقط. الفيلسوف يزور لاعبًا مرة أولى دون معرفة معلومات عنه، ثم يجب أن يعود إلى اللاعب نفسه في ليلة لاحقة ليعرف دوره وقدرته وما فعله في الزيارة السابقة. في التوزيع اليدوي تختار دور كل لاعب بنفسك. بعد بدء اللعبة سيكشف كل لاعب دوره بشكل سري، ثم تبدأ أدوار الليل والنقاش والتصويت حتى يفوز أحد الفريقين.",
 
     "📖"
-
   );
-
 }
 
 
@@ -8078,9 +7376,7 @@ function showSettings() {
     "واجهة اللعبة تستخدم تنبيهات داخلية بدل نوافذ المتصفح، والتصميم مخصص للهاتف والكمبيوتر. صور اللاعبين تبقى داخل جلسة اللعبة الحالية.",
 
     "⚙️"
-
   );
-
 }
 
 
@@ -8098,7 +7394,6 @@ function bindEvents() {
         showScreen(
           "playersScreen"
         );
-
       }
     );
 
@@ -8125,7 +7420,6 @@ function bindEvents() {
         showScreen(
           "homeScreen"
         );
-
       }
     );
 
@@ -8150,16 +7444,12 @@ function bindEvents() {
           event.preventDefault();
 
           addPlayer();
-
         }
-
       }
     );
 
 
-  /*
-   * DISTRIBUTION
-   */
+  /* DISTRIBUTION */
 
   $("randomRoleModeBtn")
     ?.addEventListener(
@@ -8169,7 +7459,6 @@ function bindEvents() {
         setDistributionMode(
           "random"
         );
-
       }
     );
 
@@ -8182,14 +7471,11 @@ function bindEvents() {
         setDistributionMode(
           "manual"
         );
-
       }
     );
 
 
-  /*
-   * HOME BUTTONS
-   */
+  /* HOME */
 
   $("gameHomeBtn")
     ?.addEventListener(
@@ -8199,7 +7485,6 @@ function bindEvents() {
         confirmExitGame(
           "home"
         );
-
       }
     );
 
@@ -8212,7 +7497,6 @@ function bindEvents() {
         confirmExitGame(
           "home"
         );
-
       }
     );
 
@@ -8225,14 +7509,11 @@ function bindEvents() {
         confirmExitGame(
           "home"
         );
-
       }
     );
 
 
-  /*
-   * TO ROLES
-   */
+  /* TO ROLES */
 
   $("toRolesBtn")
     ?.addEventListener(
@@ -8250,24 +7531,18 @@ function bindEvents() {
           );
 
           return;
-
         }
 
-
         updateRoleSummary();
-
 
         showScreen(
           "rolesSetupScreen"
         );
-
       }
     );
 
 
-  /*
-   * BACK PLAYERS
-   */
+  /* BACK PLAYERS */
 
   $("backPlayersBtn")
     ?.addEventListener(
@@ -8277,14 +7552,11 @@ function bindEvents() {
         showScreen(
           "playersScreen"
         );
-
       }
     );
 
 
-  /*
-   * ROLE OPTIONS
-   */
+  /* ROLE OPTIONS */
 
   $("roleOptions")
     ?.addEventListener(
@@ -8296,20 +7568,18 @@ function bindEvents() {
             ".role-option"
           );
 
-        if (!button) return;
-
+        if (!button) {
+          return;
+        }
 
         toggleRole(
           button.dataset.role
         );
-
       }
     );
 
 
-  /*
-   * REVIEW
-   */
+  /* REVIEW */
 
   $("toReviewBtn")
     ?.addEventListener(
@@ -8326,14 +7596,11 @@ function bindEvents() {
         showScreen(
           "rolesSetupScreen"
         );
-
       }
     );
 
 
-  /*
-   * START
-   */
+  /* START */
 
   $("startGameBtn")
     ?.addEventListener(
@@ -8342,9 +7609,7 @@ function bindEvents() {
     );
 
 
-  /*
-   * ROLE
-   */
+  /* ROLE */
 
   $("revealRoleBtn")
     ?.addEventListener(
@@ -8360,9 +7625,7 @@ function bindEvents() {
     );
 
 
-  /*
-   * PASS
-   */
+  /* PASS */
 
   $("continuePassBtn")
     ?.addEventListener(
@@ -8371,9 +7634,7 @@ function bindEvents() {
     );
 
 
-  /*
-   * ACTION
-   */
+  /* ACTION */
 
   $("confirmActionBtn")
     ?.addEventListener(
@@ -8388,12 +7649,9 @@ function bindEvents() {
           handleHunterConfirm();
 
           return;
-
         }
 
-
         confirmAction();
-
       }
     );
 
@@ -8411,19 +7669,14 @@ function bindEvents() {
           handleHunterSkip();
 
           return;
-
         }
 
-
         skipAction();
-
       }
     );
 
 
-  /*
-   * DISCUSSION
-   */
+  /* DISCUSSION */
 
   $("startDiscussionBtn")
     ?.addEventListener(
@@ -8432,9 +7685,7 @@ function bindEvents() {
     );
 
 
-  /*
-   * VOTING
-   */
+  /* VOTING */
 
   $("startVotingBtn")
     ?.addEventListener(
@@ -8450,9 +7701,7 @@ function bindEvents() {
     );
 
 
-  /*
-   * NEXT AFTER VOTE
-   */
+  /* NEXT AFTER VOTE */
 
   $("continueAfterVoteBtn")
     ?.addEventListener(
@@ -8461,9 +7710,7 @@ function bindEvents() {
     );
 
 
-  /*
-   * NEW GAME
-   */
+  /* NEW GAME */
 
   $("newGameBtn")
     ?.addEventListener(
@@ -8472,9 +7719,7 @@ function bindEvents() {
     );
 
 
-  /*
-   * MODAL
-   */
+  /* MODAL */
 
   $("closeModalBtn")
     ?.addEventListener(
@@ -8503,24 +7748,19 @@ function bindEvents() {
         ) {
 
           closeModal(false);
-
         }
-
       }
     );
 
 
-  /*
-   * ESCAPE
-   */
+  /* ESCAPE */
 
   document.addEventListener(
     "keydown",
     event => {
 
       if (
-        event.key ===
-        "Escape" &&
+        event.key === "Escape" &&
         !$("modal")
           ?.classList.contains(
             "hidden"
@@ -8528,23 +7768,18 @@ function bindEvents() {
       ) {
 
         closeModal(false);
-
       }
-
     }
   );
 
 
-  /*
-   * AVATAR
-   */
+  /* AVATAR */
 
   $("avatarInput")
     ?.addEventListener(
       "change",
       handleAvatarUpload
     );
-
 }
 
 
@@ -8585,7 +7820,6 @@ function initGame() {
     },
     100
   );
-
 }
 
 
@@ -8606,5 +7840,4 @@ if (
 } else {
 
   initGame();
-
 }
