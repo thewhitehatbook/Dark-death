@@ -1840,11 +1840,11 @@ const ROLE_WEIGHTS = {
 
   phoenix: 25,
 
-  philosopher: 15,
+  philosopher: 20,
 
-  trapper: 10,
+  trapper: 20,
 
-  villager: 50
+  villager: 30
 
 };
 function buildRandomRoles() {
@@ -2375,7 +2375,9 @@ function prepareReview() {
    RESET
    ========================================================= */
 
-function resetGameData() {
+function resetGameData(
+  keepPlayers = false
+) {
 
   clearInterval(
     state.discussionInterval
@@ -2384,117 +2386,64 @@ function resetGameData() {
   state.discussionInterval =
     null;
 
-
   stopInterfaceMusic();
 
+  if (!keepPlayers) {
 
-  state.players =
-    [];
+    state.players = [];
 
-  state.night =
-    1;
+  } else {
 
-  state.nightOrder =
-    [];
+    state.players.forEach(
+      player => {
 
-  state.nightIndex =
-    0;
+        player.role = null;
+        player.alive = true;
+        player.avatar = null;
 
-  state.currentPlayer =
-    null;
+      }
+    );
 
-  state.selectedTarget =
-    null;
+  }
 
-  state.currentAction =
-    null;
+  state.night = 1;
+  state.nightOrder = [];
+  state.nightIndex = 0;
+  state.currentPlayer = null;
+  state.selectedTarget = null;
+  state.currentAction = null;
+  state.wolfChoices = {};
+  state.doctorTarget = null;
+  state.seerTarget = null;
+  state.nightPoisonTargets = [];
+  state.nightProtectedPlayers = [];
+  state.nightDeaths = [];
+  state.witchStates = {};
+  state.samuraiStates = {};
+  state.phoenixStates = {};
+  state.trapperStates = {};
+  state.philosopherStates = {};
+  state.nightActionHistory = {};
+  state.samuraiQueue = [];
+  state.samuraiMode = false;
+  state.passMode = null;
+  state.votingOrder = [];
+  state.votingIndex = 0;
+  state.votes = {};
+  state.selectedVote = null;
+  state.hunterQueue = [];
+  state.hunterMode = null;
+  state.modalCallback = null;
+  state.modalLocked = false;
+  state.transitionLock = false;
+  state.votingResolved = false;
+  state.nightResolved = false;
+  state.actionLocked = false;
+  state.voteLocked = false;
+  state.discussionSeconds = 120;
 
-  state.wolfChoices =
-    {};
-
-  state.doctorTarget =
-    null;
-
-  state.seerTarget =
-    null;
-
-  state.nightPoisonTargets =
-    [];
-
-  state.nightProtectedPlayers =
-    [];
-
-  state.nightDeaths =
-    [];
-
-  state.witchStates =
-    {};
-
-  state.samuraiStates =
-    {};
-
-  state.phoenixStates =
-    {};
-state.trapperStates = {};
-  state.philosopherStates =
-    {};
-
-  state.nightActionHistory =
-    {};
-
-  state.samuraiQueue =
-    [];
-
-  state.samuraiMode =
-    false;
-
-  state.passMode =
-    null;
-
-  state.votingOrder =
-    [];
-
-  state.votingIndex =
-    0;
-
-  state.votes =
-    {};
-
-  state.selectedVote =
-    null;
-
-  state.hunterQueue =
-    [];
-
-  state.hunterMode =
-    null;
-
-  state.started =
-    false;
-
-  state.manualRoles =
-    {};
-
-  state.transitionLock =
-    false;
-
-  state.votingResolved =
-    false;
-
-  state.nightResolved =
-    false;
-
-  state.actionLocked =
-    false;
-
-  state.voteLocked =
-    false;
-
-  state.modalCallback =
-    null;
-
-  state.isGroupPotionActive =
-    false;
+  state.started = false;
+  state.manualRoles = {};
 
 }
 
@@ -7297,7 +7246,7 @@ function newGame() {
    * لذلك هنا نمسح اللاعبين أيضًا.
    */
 
-  resetGameData();
+  resetGameData(true);
 
 
   state.activeRoles = {
