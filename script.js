@@ -5058,3 +5058,349 @@ if (
   initGame();
 
 }
+// =====================================================
+// 🔊 نظام أصوات اللعبة
+// =====================================================
+
+const audioSystem = {
+
+    // ===============================
+    // 🎵 إعدادات الأصوات
+    // ===============================
+
+    audioConfig: {
+
+        // موسيقى اللعبة
+        bgMusicPath: "./2.mp3",
+
+        // صوت الأزرار
+        clickSoundPath: "./1.mp3",
+
+        // صوت التصويت
+        votingSoundPath: "./3.mp3",
+
+        // مستوى الموسيقى
+        bgVolume: 0.25,
+
+        // مستوى صوت الأزرار
+        clickVolume: 0.6,
+
+        // مستوى صوت التصويت
+        votingVolume: 0.7
+    },
+
+
+    // ===============================
+    // 🎧 مشغلات الصوت
+    // ===============================
+
+    bgAudioInstance: null,
+
+    votingAudioInstance: null,
+
+    isUserMuted: false,
+
+
+    // ===============================
+    // 🔊 التهيئة
+    // ===============================
+
+    init() {
+
+        this.setupBackgroundMusic();
+        this.setupVotingSound();
+        this.setupButtonSounds();
+
+    },
+
+
+    // ===============================
+    // 🎵 موسيقى اللعبة
+    // ===============================
+
+    setupBackgroundMusic() {
+
+        this.bgAudioInstance =
+            new Audio(this.audioConfig.bgMusicPath);
+
+        this.bgAudioInstance.loop = true;
+
+        this.bgAudioInstance.volume =
+            this.audioConfig.bgVolume;
+
+        this.bgAudioInstance.preload = "auto";
+
+
+        // المتصفح يمنع الموسيقى التلقائية أحيانًا
+        const startMusic = () => {
+
+            if (!this.bgAudioInstance) return;
+
+            if (this.isUserMuted) return;
+
+            this.bgAudioInstance
+                .play()
+                .then(() => {
+
+                    document.removeEventListener(
+                        "click",
+                        startMusic
+                    );
+
+                    document.removeEventListener(
+                        "touchstart",
+                        startMusic
+                    );
+
+                    document.removeEventListener(
+                        "keydown",
+                        startMusic
+                    );
+
+                })
+                .catch(() => {});
+
+        };
+
+
+        // محاولة التشغيل
+        startMusic();
+
+
+        // تشغيل بعد أول تفاعل
+        document.addEventListener(
+            "click",
+            startMusic
+        );
+
+        document.addEventListener(
+            "touchstart",
+            startMusic
+        );
+
+        document.addEventListener(
+            "keydown",
+            startMusic
+        );
+
+    },
+
+
+    // ===============================
+    // 🗳️ تجهيز صوت التصويت
+    // ===============================
+
+    setupVotingSound() {
+
+        this.votingAudioInstance =
+            new Audio(this.audioConfig.votingSoundPath);
+
+        this.votingAudioInstance.volume =
+            this.audioConfig.votingVolume;
+
+        this.votingAudioInstance.preload = "auto";
+
+    },
+
+
+    // ===============================
+    // 🔘 أصوات الأزرار
+    // ===============================
+
+    setupButtonSounds() {
+
+        document.addEventListener("click", (e) => {
+
+            const button =
+                e.target.closest("button");
+
+            if (!button) return;
+
+            this.playButtonSound();
+
+        });
+
+    },
+
+
+    // ===============================
+    // 🔘 تشغيل صوت الزر
+    // ===============================
+
+    playButtonSound() {
+
+        if (this.isUserMuted) return;
+
+        try {
+
+            const clickAudio =
+                new Audio(
+                    this.audioConfig.clickSoundPath
+                );
+
+            clickAudio.volume =
+                this.audioConfig.clickVolume;
+
+            clickAudio.currentTime = 0;
+
+            clickAudio.play().catch(() => {});
+
+        } catch (error) {
+
+            console.log(
+                "خطأ صوت الزر:",
+                error
+            );
+
+        }
+
+    },
+
+
+    // ===============================
+    // 🗳️ تشغيل صوت التصويت
+    // ===============================
+
+    playVotingSound() {
+
+        if (this.isUserMuted) return;
+
+        if (!this.votingAudioInstance) return;
+
+
+        this.votingAudioInstance.currentTime = 0;
+
+        this.votingAudioInstance
+            .play()
+            .catch((error) => {
+
+                console.log(
+                    "خطأ صوت التصويت:",
+                    error
+                );
+
+            });
+
+    },
+
+
+    // ===============================
+    // ▶️ تشغيل موسيقى اللعبة
+    // ===============================
+
+    startBackgroundMusic() {
+
+        if (!this.bgAudioInstance) return;
+
+        if (this.isUserMuted) return;
+
+
+        this.bgAudioInstance
+            .play()
+            .catch(() => {});
+
+    },
+
+
+    // ===============================
+    // ⏸️ إيقاف موسيقى اللعبة
+    // ===============================
+
+    stopBackgroundMusic() {
+
+        if (!this.bgAudioInstance) return;
+
+        this.bgAudioInstance.pause();
+
+        this.bgAudioInstance.currentTime = 0;
+
+    },
+
+
+    // ===============================
+    // 🔇 كتم / تشغيل الأصوات
+    // ===============================
+
+    toggleMute() {
+
+        this.isUserMuted =
+            !this.isUserMuted;
+
+
+        if (this.isUserMuted) {
+
+            // إيقاف الموسيقى
+            if (this.bgAudioInstance) {
+
+                this.bgAudioInstance.pause();
+
+            }
+
+
+            // إيقاف صوت التصويت
+            if (this.votingAudioInstance) {
+
+                this.votingAudioInstance.pause();
+
+            }
+
+
+        } else {
+
+            // إعادة تشغيل الموسيقى
+            this.startBackgroundMusic();
+
+        }
+
+    },
+
+
+    // ===============================
+    // 🔊 تغيير صوت الموسيقى
+    // ===============================
+
+    setMusicVolume(volume) {
+
+        if (!this.bgAudioInstance) return;
+
+        this.bgAudioInstance.volume = volume;
+
+    },
+
+
+    // ===============================
+    // 🔊 تغيير صوت الأزرار
+    // ===============================
+
+    setClickVolume(volume) {
+
+        this.audioConfig.clickVolume = volume;
+
+    },
+
+
+    // ===============================
+    // 🔊 تغيير صوت التصويت
+    // ===============================
+
+    setVotingVolume(volume) {
+
+        this.audioConfig.votingVolume = volume;
+
+        if (this.votingAudioInstance) {
+
+            this.votingAudioInstance.volume =
+                volume;
+
+        }
+
+    }
+
+};
+
+
+// =====================================================
+// 🚀 تشغيل نظام الأصوات
+// =====================================================
+
+audioSystem.init();
