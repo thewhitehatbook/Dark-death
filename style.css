@@ -3598,3 +3598,22 @@ button:active {
     transition-duration: .01ms !important;
   }
 }
+/* إخفاء صور اللاعبين داخل اختيارات الأفعال والتصويت */
+#actionTargets .target-avatar,
+#votingTargets .target-avatar {
+    display: none !important;
+}
+
+/* ترتيب اسم اللاعب بعد اختفاء الصورة */
+#actionTargets .target-player-info,
+#votingTargets .target-player-info {
+    display: flex;
+    align-items: center;
+    gap: 0 !important;
+}
+
+/* إذا بقي فراغ بسبب تنسيقات قديمة */
+#actionTargets .target-btn,
+#votingTargets .target-btn {
+    gap: 0 !important;
+}

@@ -1,15 +1,16 @@
+"use strict";
+
 /* =========================================================
    MAFIA — FULL GAME ENGINE
    ========================================================= */
-
-"use strict";
 
 
 /* =========================================================
    ELEMENT HELPER
    ========================================================= */
 
-const $ = (id) => document.getElementById(id);
+const $ = (id) =>
+  document.getElementById(id);
 
 
 /* =========================================================
@@ -90,7 +91,7 @@ const ROLES = {
     team: "village",
     teamName: "فريق القرية",
     description:
-      "ليس لديك قدرة خاصة. استخدم النقاش والتصويت لاكتشاف المستذئبين."
+      "ليس لديك قدرة خاصة. استخدم النقاش والتصويت لاكتشاف القتلة."
   }
 
 };
@@ -169,30 +170,554 @@ const state = {
 
 
 /* =========================================================
-   UTILITIES
+   AUDIO SYSTEM
+   =========================================================
+   
+   مهم:
+   الموسيقى الطويلة للواجهات تتحكم بها showScreen().
+   
+   audioSystem هنا مسؤول فقط عن:
+   1.mp3 = صوت الأزرار
+   3.mp3 = صوت التصويت
+   ========================================================= */
+
+const audioSystem = {
+
+  audioConfig: {
+
+    clickSoundPath: "./1.mp3",
+    votingSoundPath: "./3.mp3",
+
+    clickVolume: 0.6,
+    votingVolume: 0.7
+
+  },
+
+  votingAudioInstance: null,
+
+  isUserMuted: false,
+
+
+  init() {
+
+    this.setupVotingSound();
+    this.setupButtonSounds();
+
+  },
+
+
+  setupVotingSound() {
+
+    this.votingAudioInstance =
+      new Audio(
+        this.audioConfig.votingSoundPath
+      );
+
+    this.votingAudioInstance.volume =
+      this.audioConfig.votingVolume;
+
+    this.votingAudioInstance.preload =
+      "auto";
+
+  },
+
+
+  setupButtonSounds() {
+
+    document.addEventListener(
+      "click",
+      event => {
+
+        const button =
+          event.target.closest(
+            "button"
+          );
+
+        if (!button) return;
+
+        /*
+         * أزرار اختيار اللاعب لا نريد
+         * أن تصدر صوت زر عادي.
+         */
+
+        if (
+          button.closest(
+            "#votingTargets"
+          )
+        ) {
+
+          return;
+
+        }
+
+        if (
+          button.closest(
+            "#actionTargets"
+          )
+        ) {
+
+          return;
+
+        }
+
+        this.playButtonSound();
+
+      }
+    );
+
+  },
+
+
+  playButtonSound() {
+
+    if (
+      this.isUserMuted
+    ) {
+
+      return;
+    }
+
+    try {
+
+      const audio =
+        new Audio(
+          this.audioConfig.clickSoundPath
+        );
+
+      audio.volume =
+        this.audioConfig.clickVolume;
+
+      audio.currentTime =
+        0;
+
+      audio.play()
+        .catch(() => {});
+
+    } catch (error) {
+
+      console.log(
+        "خطأ صوت الزر:",
+        error
+      );
+
+    }
+
+  },
+
+
+  playVotingSound() {
+
+    if (
+      this.isUserMuted
+    ) {
+
+      return;
+    }
+
+    if (
+      !this.votingAudioInstance
+    ) {
+
+      this.setupVotingSound();
+
+    }
+
+    this.votingAudioInstance
+      .currentTime = 0;
+
+    this.votingAudioInstance
+      .play()
+      .catch(() => {});
+
+  },
+
+
+  toggleMute() {
+
+    this.isUserMuted =
+      !this.isUserMuted;
+
+
+    if (
+      this.isUserMuted
+    ) {
+
+      stopInterfaceMusic();
+
+      if (
+        this.votingAudioInstance
+      ) {
+
+        this.votingAudioInstance
+          .pause();
+
+        try {
+
+          this.votingAudioInstance
+            .currentTime = 0;
+
+        } catch (error) {}
+
+      }
+
+    } else {
+
+      /*
+       * إعادة الموسيقى حسب الواجهة الحالية
+       */
+
+      const activeScreen =
+        screens.find(
+          id =>
+            $(id)?.classList.contains(
+              "active"
+            )
+        );
+
+      if (activeScreen) {
+
+        showScreen(
+          activeScreen
+        );
+
+      }
+
+    }
+
+  },
+
+
+  setClickVolume(volume) {
+
+    this.audioConfig.clickVolume =
+      volume;
+
+  },
+
+
+  setVotingVolume(volume) {
+
+    this.audioConfig.votingVolume =
+      volume;
+
+    if (
+      this.votingAudioInstance
+    ) {
+
+      this.votingAudioInstance
+        .volume = volume;
+
+    }
+
+  },
+
+  /*
+   * دالة توافقية حتى لو بقي استدعاء قديم
+   * في أي مكان بالملف.
+   */
+
+  stopAllGameAudio() {
+
+    stopInterfaceMusic();
+
+    if (
+      this.votingAudioInstance
+    ) {
+
+      this.votingAudioInstance
+        .pause();
+
+      try {
+
+        this.votingAudioInstance
+          .currentTime = 0;
+
+      } catch (error) {}
+
+    }
+
+  }
+
+};
+
+
+/* =========================================================
+   INTERFACE AUDIO
+   ========================================================= */
+
+function getInterfaceAudio(
+  id,
+  src
+) {
+
+  let audio =
+    $(id);
+
+  if (!audio) {
+
+    audio =
+      document.createElement(
+        "audio"
+      );
+
+    audio.id =
+      id;
+
+    audio.src =
+      src;
+
+    audio.preload =
+      "auto";
+
+    document.body.appendChild(
+      audio
+    );
+
+  }
+
+  return audio;
+}
+
+
+function getBgMusic() {
+
+  return getInterfaceAudio(
+    "bgMusic",
+    "./2.mp3"
+  );
+
+}
+
+
+function getDiscussionMusic() {
+
+  return getInterfaceAudio(
+    "discussionMusic",
+    "./6.mp3"
+  );
+
+}
+
+
+function getVillageWinMusic() {
+
+  return getInterfaceAudio(
+    "villageWinMusic",
+    "./4.mp3"
+  );
+
+}
+
+
+function getMercenariesWinMusic() {
+
+  return getInterfaceAudio(
+    "mercenariesWinMusic",
+    "./5.mp3"
+  );
+
+}
+
+
+/* =========================================================
+   STOP INTERFACE MUSIC
+   ========================================================= */
+
+function stopInterfaceMusic() {
+
+  [
+
+    getBgMusic(),
+    getDiscussionMusic(),
+    getVillageWinMusic(),
+    getMercenariesWinMusic()
+
+  ].forEach(
+    audio => {
+
+      if (!audio) return;
+
+      audio.pause();
+
+      try {
+
+        audio.currentTime = 0;
+
+      } catch (error) {}
+
+    }
+  );
+
+}
+
+
+/* =========================================================
+   PLAY INTERFACE MUSIC
+   ========================================================= */
+
+function playInterfaceMusic(
+  id
+) {
+
+  if (
+    audioSystem.isUserMuted
+  ) {
+
+    return;
+
+  }
+
+
+  const bgMusic =
+    getBgMusic();
+
+  const discussionMusic =
+    getDiscussionMusic();
+
+  const villageWinMusic =
+    getVillageWinMusic();
+
+  const mercenariesWinMusic =
+    getMercenariesWinMusic();
+
+
+  /*
+   * إيقاف الموسيقى السابقة
+   */
+
+  [
+    bgMusic,
+    discussionMusic,
+    villageWinMusic,
+    mercenariesWinMusic
+
+  ].forEach(
+    audio => {
+
+      if (!audio) return;
+
+      audio.pause();
+
+      try {
+
+        audio.currentTime = 0;
+
+      } catch (error) {}
+
+    }
+  );
+
+
+  /*
+   * الرئيسية
+   */
+
+  const mainScreens = [
+
+    "homeScreen",
+    "playersScreen",
+    "rolesSetupScreen",
+    "reviewScreen",
+    "roleScreen",
+    "actionScreen",
+    "passScreen",
+    "nightResultScreen",
+    "votingScreen",
+    "voteResultScreen"
+
+  ];
+
+
+  if (
+    mainScreens.includes(id)
+  ) {
+
+    bgMusic.loop =
+      true;
+
+    bgMusic.volume =
+      0.25;
+
+    bgMusic.play()
+      .catch(() => {});
+
+    return;
+
+  }
+
+
+  /*
+   * النقاش
+   */
+
+  if (
+    id ===
+    "discussionScreen"
+  ) {
+
+    discussionMusic.loop =
+      true;
+
+    discussionMusic.volume =
+      0.5;
+
+    discussionMusic.play()
+      .catch(() => {});
+
+    return;
+
+  }
+
+}
+
+
+/* =========================================================
+   ELEMENT / UTILITY
    ========================================================= */
 
 function randomId() {
 
-  return Date.now().toString(36) +
-    Math.random().toString(36).slice(2);
+  return (
+    Date.now().toString(36) +
+    Math.random()
+      .toString(36)
+      .slice(2)
+  );
+
 }
 
 
 function escapeHTML(text) {
 
   return String(text)
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
+    .replaceAll(
+      "&",
+      "&amp;"
+    )
+    .replaceAll(
+      "<",
+      "&lt;"
+    )
+    .replaceAll(
+      ">",
+      "&gt;"
+    )
+    .replaceAll(
+      '"',
+      "&quot;"
+    )
+    .replaceAll(
+      "'",
+      "&#039;"
+    );
+
 }
 
 
 function shuffle(array) {
 
-  const arr = [...array];
+  const arr =
+    [...array];
 
   for (
     let i = arr.length - 1;
@@ -202,30 +727,43 @@ function shuffle(array) {
 
     const j =
       Math.floor(
-        Math.random() * (i + 1)
+        Math.random() *
+        (i + 1)
       );
 
-    [arr[i], arr[j]] =
-      [arr[j], arr[i]];
+    [
+      arr[i],
+      arr[j]
+    ] =
+    [
+      arr[j],
+      arr[i]
+    ];
+
   }
 
   return arr;
+
 }
 
 
 function alivePlayers() {
 
   return state.players.filter(
-    player => player.alive
+    player =>
+      player.alive
   );
+
 }
 
 
 function getPlayer(id) {
 
   return state.players.find(
-    player => player.id === id
+    player =>
+      player.id === id
   );
+
 }
 
 
@@ -234,6 +772,7 @@ function getRole(player) {
   return player
     ? ROLES[player.role]
     : null;
+
 }
 
 
@@ -241,8 +780,10 @@ function getAliveWolves() {
 
   return alivePlayers().filter(
     player =>
-      player.role === "werewolf"
+      player.role ===
+      "werewolf"
   );
+
 }
 
 
@@ -250,8 +791,10 @@ function getAliveVillagers() {
 
   return alivePlayers().filter(
     player =>
-      player.role !== "werewolf"
+      player.role !==
+      "werewolf"
   );
+
 }
 
 
@@ -277,12 +820,29 @@ function showScreen(id) {
     }
   );
 
-  updateGameHomeButton(id);
+
+  /*
+   * 🎵 موسيقى الواجهة
+   */
+
+  playInterfaceMusic(
+    id
+  );
+
+
+  updateGameHomeButton(
+    id
+  );
+
 
   window.scrollTo({
+
     top: 0,
+
     behavior: "instant"
+
   });
+
 }
 
 
@@ -301,7 +861,9 @@ function showToast(
   if (!container) return;
 
   const toast =
-    document.createElement("div");
+    document.createElement(
+      "div"
+    );
 
   toast.className =
     `toast ${type}`;
@@ -321,13 +883,15 @@ function showToast(
       );
 
       setTimeout(
-        () => toast.remove(),
+        () =>
+          toast.remove(),
         250
       );
 
     },
     2800
   );
+
 }
 
 
@@ -357,25 +921,17 @@ function showModal(
     icon;
 
   state.modalCallback =
-    typeof callback === "function"
+    typeof callback ===
+    "function"
       ? callback
       : null;
 
   modal.classList.remove(
     "hidden"
   );
+
 }
 
-
-/*
- * مهم:
- *
- * closeModal(false)
- * = إغلاق فقط
- *
- * closeModal(true)
- * = إغلاق + تنفيذ التأكيد
- */
 
 function closeModal(
   confirmed = false
@@ -389,6 +945,7 @@ function closeModal(
     modal.classList.add(
       "hidden"
     );
+
   }
 
   const callback =
@@ -399,51 +956,53 @@ function closeModal(
 
   if (
     confirmed &&
-    typeof callback === "function"
+    typeof callback ===
+    "function"
   ) {
 
     callback();
+
   }
+
 }
 
 
 /* =========================================================
-   HOME / EXIT BUTTONS
+   HOME / EXIT
    ========================================================= */
 
-/*
- * لا ننشئ أي أزرار جديدة من JavaScript.
- *
- * الأزرار موجودة أصلًا داخل HTML:
- *
- * #gameHomeBtn
- * #gameHomeBtnAction
- * #gameHomeBtnVoting
- *
- * هذا يمنع ظهور أزرار مكررة.
- */
-
-function updateGameHomeButton(screenId) {
+function updateGameHomeButton(
+  screenId
+) {
 
   const gameScreens = [
+
     "roleScreen",
     "actionScreen",
     "votingScreen"
+
   ];
 
   const isGameScreen =
-    gameScreens.includes(screenId);
+    gameScreens.includes(
+      screenId
+    );
 
   document
-    .querySelectorAll(".game-home-btn")
-    .forEach(button => {
+    .querySelectorAll(
+      ".game-home-btn"
+    )
+    .forEach(
+      button => {
 
-      button.classList.toggle(
-        "game-home-visible",
-        isGameScreen
-      );
+        button.classList.toggle(
+          "game-home-visible",
+          isGameScreen
+        );
 
-    });
+      }
+    );
+
 }
 
 
@@ -456,22 +1015,33 @@ function confirmExitGame(
       ? "العودة إلى الرئيسية؟"
       : "الخروج من اللعبة؟";
 
+
   const text =
     destination === "home"
       ? "إذا عدت الآن ستنتهي اللعبة الحالية وسيتم فقدان التقدم. هل أنت متأكد؟"
       : "إذا خرجت الآن ستنتهي اللعبة الحالية وسيتم فقدان التقدم. هل أنت متأكد؟";
 
+
   showModal(
+
     title,
+
     text,
+
     destination === "home"
       ? "🏠"
       : "🚪",
+
     () => {
 
       clearInterval(
         state.discussionInterval
       );
+
+      state.discussionInterval =
+        null;
+
+      stopInterfaceMusic();
 
       resetGameData();
 
@@ -480,7 +1050,9 @@ function confirmExitGame(
       );
 
     }
+
   );
+
 }
 
 
@@ -488,7 +1060,8 @@ function confirmExitGame(
    AVATAR
    ========================================================= */
 
-let avatarTargetId = null;
+let avatarTargetId =
+  null;
 
 
 function openAvatarPicker(
@@ -507,6 +1080,7 @@ function openAvatarPicker(
     "";
 
   input.click();
+
 }
 
 
@@ -523,7 +1097,9 @@ function handleAvatarUpload(
   ) {
 
     return;
+
   }
+
 
   if (
     !file.type.startsWith(
@@ -540,7 +1116,9 @@ function handleAvatarUpload(
       null;
 
     return;
+
   }
+
 
   if (
     file.size >
@@ -556,7 +1134,9 @@ function handleAvatarUpload(
       null;
 
     return;
+
   }
+
 
   const reader =
     new FileReader();
@@ -564,33 +1144,42 @@ function handleAvatarUpload(
   const targetId =
     avatarTargetId;
 
-  reader.onload = () => {
 
-    const player =
-      getPlayer(targetId);
+  reader.onload =
+    () => {
 
-    if (!player) return;
+      const player =
+        getPlayer(
+          targetId
+        );
 
-    player.avatar =
-      reader.result;
+      if (!player) return;
 
-    renderPlayerList();
+      player.avatar =
+        reader.result;
 
-    updatePlayerAvatars();
+      renderPlayerList();
 
-    showToast(
-      "تم تغيير صورة اللاعب",
-      "success"
-    );
-  };
+      updatePlayerAvatars();
 
-  reader.onerror = () => {
+      showToast(
+        "تم تغيير صورة اللاعب",
+        "success"
+      );
 
-    showToast(
-      "حدث خطأ أثناء قراءة الصورة",
-      "error"
-    );
-  };
+    };
+
+
+  reader.onerror =
+    () => {
+
+      showToast(
+        "حدث خطأ أثناء قراءة الصورة",
+        "error"
+      );
+
+    };
+
 
   reader.readAsDataURL(
     file
@@ -598,6 +1187,7 @@ function handleAvatarUpload(
 
   avatarTargetId =
     null;
+
 }
 
 
@@ -615,6 +1205,7 @@ function addPlayer() {
   const name =
     input.value.trim();
 
+
   if (!name) {
 
     showToast(
@@ -623,10 +1214,13 @@ function addPlayer() {
     );
 
     return;
+
   }
 
+
   if (
-    state.players.length >= 50
+    state.players.length >=
+    50
   ) {
 
     showToast(
@@ -635,14 +1229,19 @@ function addPlayer() {
     );
 
     return;
+
   }
+
 
   const exists =
     state.players.some(
       player =>
-        player.name.trim().toLowerCase() ===
+        player.name
+          .trim()
+          .toLowerCase() ===
         name.toLowerCase()
     );
+
 
   if (exists) {
 
@@ -652,21 +1251,28 @@ function addPlayer() {
     );
 
     return;
+
   }
+
 
   state.players.push({
 
-    id: randomId(),
+    id:
+      randomId(),
 
     name,
 
-    avatar: null,
+    avatar:
+      null,
 
-    role: null,
+    role:
+      null,
 
-    alive: true
+    alive:
+      true
 
   });
+
 
   input.value =
     "";
@@ -674,6 +1280,7 @@ function addPlayer() {
   renderPlayerList();
 
   input.focus();
+
 }
 
 
@@ -687,9 +1294,12 @@ function removePlayer(
         player.id !== id
     );
 
-  delete state.manualRoles[id];
+  delete state.manualRoles[
+    id
+  ];
 
   renderPlayerList();
+
 }
 
 
@@ -700,8 +1310,10 @@ function renderPlayerList() {
 
   if (!list) return;
 
+
   if (
-    state.players.length === 0
+    state.players.length ===
+    0
   ) {
 
     list.innerHTML = `
@@ -721,85 +1333,92 @@ function renderPlayerList() {
   } else {
 
     list.innerHTML =
-      state.players.map(
-        (player, index) => {
+      state.players
+        .map(
+          (player, index) => {
 
-          const avatar =
-            player.avatar
-              ? `
-                <img
-                  src="${escapeHTML(
-                    player.avatar
-                  )}"
-                  alt=""
-                >
-              `
-              : "👤";
+            const avatar =
+              player.avatar
+                ? `
+                  <img
+                    src="${escapeHTML(
+                      player.avatar
+                    )}"
+                    alt=""
+                  >
+                `
+                : "👤";
 
-          return `
 
-            <div class="player-item">
+            return `
 
-              <div class="player-main">
+              <div class="player-item">
 
-                <button
-                  class="player-avatar"
-                  onclick="openAvatarPicker('${player.id}')"
-                  title="تغيير الصورة"
-                  type="button"
-                >
+                <div class="player-main">
 
-                  ${avatar}
+                  <button
+                    class="player-avatar"
+                    onclick="openAvatarPicker('${player.id}')"
+                    title="تغيير الصورة"
+                    type="button"
+                  >
 
-                  <span class="avatar-camera">
-                    📷
-                  </span>
+                    ${avatar}
 
-                </button>
-
-                <div class="player-name-box">
-
-                  <span class="player-name">
-
-                    <span class="player-number">
-                      ${index + 1}
+                    <span class="avatar-camera">
+                      📷
                     </span>
 
-                    ${escapeHTML(
-                      player.name
-                    )}
+                  </button>
 
-                  </span>
+                  <div class="player-name-box">
 
-                  <small class="player-sub">
-                    اضغط على الصورة لتغييرها
-                  </small>
+                    <span class="player-name">
+
+                      <span class="player-number">
+                        ${index + 1}
+                      </span>
+
+                      ${escapeHTML(
+                        player.name
+                      )}
+
+                    </span>
+
+                    <small class="player-sub">
+                      اضغط على الصورة لتغييرها
+                    </small>
+
+                  </div>
 
                 </div>
 
+                <button
+                  class="remove-player"
+                  onclick="removePlayer('${player.id}')"
+                  type="button"
+                >
+                  ×
+                </button>
+
               </div>
 
-              <button
-                class="remove-player"
-                onclick="removePlayer('${player.id}')"
-                type="button"
-              >
-                ×
-              </button>
+            `;
 
-            </div>
+          }
+        )
+        .join("");
 
-          `;
-
-        }
-      ).join("");
   }
+
 
   if ($("playerCount")) {
 
     $("playerCount").textContent =
       state.players.length;
+
   }
+
 }
 
 
@@ -812,7 +1431,8 @@ function toggleRole(
 ) {
 
   if (
-    role === "werewolf"
+    role ===
+    "werewolf"
   ) {
 
     showToast(
@@ -821,24 +1441,26 @@ function toggleRole(
     );
 
     return;
+
   }
 
+
   if (
-    !Object.prototype.hasOwnProperty.call(
-      state.activeRoles,
-      role
-    )
+    !Object.prototype
+      .hasOwnProperty.call(
+        state.activeRoles,
+        role
+      )
   ) {
+
     return;
+
   }
+
 
   state.activeRoles[role] =
     !state.activeRoles[role];
 
-  /*
-   * إذا تم إيقاف دور،
-   * نحذف اختياراته من التوزيع اليدوي.
-   */
 
   if (
     !state.activeRoles[role]
@@ -858,13 +1480,17 @@ function toggleRole(
           state.manualRoles[
             playerId
           ] = "";
+
         }
 
       }
     );
+
   }
 
+
   renderRoleOptions();
+
 }
 
 
@@ -890,6 +1516,7 @@ function renderRoleOptions() {
           active
         );
 
+
         const status =
           button.querySelector(
             ".role-power span"
@@ -897,8 +1524,10 @@ function renderRoleOptions() {
 
         if (!status) return;
 
+
         if (
-          role === "werewolf"
+          role ===
+          "werewolf"
         ) {
 
           status.textContent =
@@ -910,12 +1539,15 @@ function renderRoleOptions() {
             active
               ? "متاح"
               : "متوقف";
+
         }
 
       }
     );
 
+
   updateRoleSummary();
+
 }
 
 
@@ -929,6 +1561,7 @@ function getSelectedRoles() {
         role
       ]
   );
+
 }
 
 
@@ -937,8 +1570,10 @@ function getSelectedSpecialRoles() {
   return getSelectedRoles()
     .filter(
       role =>
-        role !== "werewolf"
+        role !==
+        "werewolf"
     );
+
 }
 
 
@@ -959,29 +1594,13 @@ function getWolfCount(
   ) return 2;
 
   return 1;
+
 }
 
 
 /* =========================================================
-   DISTRIBUTION MODE
+   DISTRIBUTION
    ========================================================= */
-
-/*
- * تم حذف createDistributionControls()
- * نهائيًا.
- *
- * السبب:
- * كان JavaScript ينشئ أزرارًا جديدة:
- *
- * توزيع عشوائي
- * توزيع يدوي
- *
- * بينما HTML يحتوي عليها أصلًا.
- *
- * لذلك كانت تظهر مجموعتان من الأزرار.
- *
- * الآن نستخدم أزرار HTML الأصلية فقط.
- */
 
 function setDistributionMode(
   mode
@@ -991,21 +1610,22 @@ function setDistributionMode(
     mode !== "random" &&
     mode !== "manual"
   ) {
+
     return;
+
   }
+
 
   state.distributionMode =
     mode;
 
-  /*
-   * الأزرار الأصلية الموجودة في HTML
-   */
 
   const randomButton =
     $("randomRoleModeBtn");
 
   const manualButton =
     $("manualRoleModeBtn");
+
 
   randomButton?.classList.toggle(
     "active",
@@ -1017,13 +1637,10 @@ function setDistributionMode(
     mode === "manual"
   );
 
-  /*
-   * إذا كان عندك وصف خاص بطريقة التوزيع
-   * سيتم تحديثه تلقائيًا إذا كان موجودًا.
-   */
 
   const description =
     $("roleModeDescription");
+
 
   if (description) {
 
@@ -1031,21 +1648,14 @@ function setDistributionMode(
       mode === "random"
         ? "سيتم توزيع الأدوار المختارة عشوائيًا."
         : "سيتم اختيار دور كل لاعب يدويًا.";
+
   }
 
-  /*
-   * لا نغيّر واجهة manualRolePanel هنا،
-   * لأن التوزيع اليدوي الفعلي يتم في شاشة المراجعة
-   * بواسطة renderManualAssignment().
-   */
 
   updateRoleSummary();
+
 }
 
-
-/* =========================================================
-   ROLE SUMMARY
-   ========================================================= */
 
 function updateRoleSummary() {
 
@@ -1053,6 +1663,7 @@ function updateRoleSummary() {
     $("roleSummaryText");
 
   if (!summary) return;
+
 
   if (
     state.distributionMode ===
@@ -1066,7 +1677,9 @@ function updateRoleSummary() {
 
     summary.textContent =
       "سيتم توزيع الأدوار المختارة عشوائيًا.";
+
   }
+
 }
 
 
@@ -1079,6 +1692,7 @@ function validateRoleSetup() {
   const playerCount =
     state.players.length;
 
+
   if (
     playerCount < 3
   ) {
@@ -1089,7 +1703,9 @@ function validateRoleSetup() {
     );
 
     return false;
+
   }
+
 
   if (
     playerCount > 50
@@ -1101,10 +1717,13 @@ function validateRoleSetup() {
     );
 
     return false;
+
   }
+
 
   const active =
     getSelectedRoles();
+
 
   if (
     !active.includes(
@@ -1118,9 +1737,12 @@ function validateRoleSetup() {
     );
 
     return false;
+
   }
 
+
   return true;
+
 }
 
 
@@ -1133,8 +1755,10 @@ function buildRandomRoles() {
   const count =
     state.players.length;
 
+
   const available =
     getSelectedRoles();
+
 
   if (
     !available.includes(
@@ -1145,12 +1769,9 @@ function buildRandomRoles() {
     available.unshift(
       "werewolf"
     );
+
   }
 
-  /*
-   * نضمن وجود عدد مناسب من المستذئبين
-   * حسب عدد اللاعبين.
-   */
 
   const wolfCount =
     Math.min(
@@ -1158,7 +1779,10 @@ function buildRandomRoles() {
       count
     );
 
-  const roles = [];
+
+  const roles =
+    [];
+
 
   for (
     let i = 0;
@@ -1169,39 +1793,44 @@ function buildRandomRoles() {
     roles.push(
       "werewolf"
     );
+
   }
+
 
   const nonWolfRoles =
     available.filter(
       role =>
-        role !== "werewolf"
+        role !==
+        "werewolf"
     );
 
-  /*
-   * إذا لم يتم تفعيل أي دور آخر،
-   * نستخدم القروي تلقائيًا كاحتياط.
-   */
 
   if (
-    nonWolfRoles.length === 0
+    nonWolfRoles.length ===
+    0
   ) {
 
     while (
-      roles.length < count
+      roles.length <
+      count
     ) {
 
       roles.push(
         "villager"
       );
+
     }
 
     return shuffle(
       roles
     );
+
   }
 
+
   while (
-    roles.length < count
+    roles.length <
+    count
   ) {
 
     const index =
@@ -1213,11 +1842,14 @@ function buildRandomRoles() {
     roles.push(
       nonWolfRoles[index]
     );
+
   }
+
 
   return shuffle(
     roles
   );
+
 }
 
 
@@ -1227,16 +1859,20 @@ function buildRandomRoles() {
 
 function buildManualRoles() {
 
-  const roles = [];
+  const roles =
+    [];
+
 
   for (
-    const player of state.players
+    const player of
+    state.players
   ) {
 
     const role =
       state.manualRoles[
         player.id
       ];
+
 
     if (!role) {
 
@@ -1246,11 +1882,16 @@ function buildManualRoles() {
       );
 
       return null;
+
     }
 
+
     if (
-      role !== "werewolf" &&
-      !state.activeRoles[role]
+      role !==
+      "werewolf" &&
+      !state.activeRoles[
+        role
+      ]
     ) {
 
       showToast(
@@ -1259,12 +1900,16 @@ function buildManualRoles() {
       );
 
       return null;
+
     }
+
 
     roles.push(
       role
     );
+
   }
+
 
   if (
     !roles.includes(
@@ -1278,9 +1923,12 @@ function buildManualRoles() {
     );
 
     return null;
+
   }
 
+
   return roles;
+
 }
 
 
@@ -1294,6 +1942,7 @@ function renderManualAssignment() {
     $("reviewRolesList");
 
   if (!list) return;
+
 
   list.innerHTML = `
 
@@ -1314,89 +1963,93 @@ function renderManualAssignment() {
       <div class="manual-player-list">
 
         ${
-          state.players.map(
-            (player, index) => {
+          state.players
+            .map(
+              (player, index) => {
 
-              const selected =
-                state.manualRoles[
-                  player.id
-                ] || "";
+                const selected =
+                  state.manualRoles[
+                    player.id
+                  ] || "";
 
-              return `
 
-                <div class="manual-player">
+                return `
 
-                  <div class="manual-player-info">
+                  <div class="manual-player">
 
-                    <span class="manual-number">
-                      ${index + 1}
-                    </span>
+                    <div class="manual-player-info">
 
-                    ${
-                      player.avatar
-                        ? `
-                          <img
-                            src="${escapeHTML(
-                              player.avatar
-                            )}"
-                            alt=""
-                            class="manual-avatar"
-                          >
-                        `
-                        : `
-                          <div class="manual-avatar">
-                            👤
-                          </div>
-                        `
-                    }
+                      <span class="manual-number">
+                        ${index + 1}
+                      </span>
 
-                    <strong>
-                      ${escapeHTML(
-                        player.name
-                      )}
-                    </strong>
+                      ${
+                        player.avatar
+                          ? `
+                            <img
+                              src="${escapeHTML(
+                                player.avatar
+                              )}"
+                              alt=""
+                              class="manual-avatar"
+                            >
+                          `
+                          : `
+                            <div class="manual-avatar">
+                              👤
+                            </div>
+                          `
+                      }
+
+                      <strong>
+                        ${escapeHTML(
+                          player.name
+                        )}
+                      </strong>
+
+                    </div>
+
+                    <select
+                      class="manual-role-select"
+                      data-player-id="${player.id}"
+                    >
+
+                      <option value="">
+                        اختر الدور
+                      </option>
+
+                      ${
+                        getSelectedRoles()
+                          .map(
+                            role => `
+
+                              <option
+                                value="${role}"
+                                ${
+                                  selected ===
+                                  role
+                                    ? "selected"
+                                    : ""
+                                }
+                              >
+                                ${ROLES[role].icon}
+                                ${ROLES[role].name}
+                              </option>
+
+                            `
+                          )
+                          .join("")
+                      }
+
+                    </select>
 
                   </div>
 
-                  <select
-                    class="manual-role-select"
-                    data-player-id="${player.id}"
-                  >
+                `;
 
-                    <option value="">
-                      اختر الدور
-                    </option>
-
-                    ${
-                      getSelectedRoles()
-                        .map(
-                          role => `
-
-                            <option
-                              value="${role}"
-                              ${
-                                selected === role
-                                  ? "selected"
-                                  : ""
-                              }
-                            >
-                              ${ROLES[role].icon}
-                              ${ROLES[role].name}
-                            </option>
-
-                          `
-                        )
-                        .join("")
-                    }
-
-                  </select>
-
-                </div>
-
-              `;
-
-            }
-          ).join("")
+              }
+            )
+            .join("")
         }
 
       </div>
@@ -1404,6 +2057,7 @@ function renderManualAssignment() {
     </div>
 
   `;
+
 
   list
     .querySelectorAll(
@@ -1417,7 +2071,8 @@ function renderManualAssignment() {
           () => {
 
             state.manualRoles[
-              select.dataset.playerId
+              select.dataset
+                .playerId
             ] =
               select.value;
 
@@ -1426,11 +2081,12 @@ function renderManualAssignment() {
 
       }
     );
+
 }
 
 
 /* =========================================================
-   PREPARE REVIEW
+   REVIEW
    ========================================================= */
 
 function prepareReview() {
@@ -1438,8 +2094,11 @@ function prepareReview() {
   if (
     !validateRoleSetup()
   ) {
+
     return;
+
   }
+
 
   if (
     state.distributionMode ===
@@ -1450,10 +2109,11 @@ function prepareReview() {
       player => {
 
         if (
-          !Object.prototype.hasOwnProperty.call(
-            state.manualRoles,
-            player.id
-          )
+          !Object.prototype
+            .hasOwnProperty.call(
+              state.manualRoles,
+              player.id
+            )
         ) {
 
           state.manualRoles[
@@ -1465,12 +2125,14 @@ function prepareReview() {
       }
     );
 
+
     renderManualAssignment();
 
   } else {
 
     const list =
       $("reviewRolesList");
+
 
     if (list) {
 
@@ -1498,8 +2160,11 @@ function prepareReview() {
         </div>
 
       `;
+
     }
+
   }
+
 
   [
     "reviewPlayerCount",
@@ -1515,10 +2180,12 @@ function prepareReview() {
 
         el.textContent =
           "—";
+
       }
 
     }
   );
+
 
   if (
     $("reviewDistributionMode")
@@ -1526,19 +2193,23 @@ function prepareReview() {
 
     $("reviewDistributionMode")
       .textContent =
-      state.distributionMode === "random"
+      state.distributionMode ===
+      "random"
         ? "عشوائي"
         : "يدوي";
+
   }
+
 
   showScreen(
     "reviewScreen"
   );
+
 }
 
 
 /* =========================================================
-   RESET GAME DATA
+   RESET
    ========================================================= */
 
 function resetGameData() {
@@ -1547,193 +2218,36 @@ function resetGameData() {
     state.discussionInterval
   );
 
-  state.players = [];
-
-  state.night = 1;
-
-  state.nightOrder = [];
-  state.nightIndex = 0;
-
-  state.currentPlayer = null;
-
-  state.selectedTarget = null;
-  state.currentAction = null;
-
-  state.wolfChoices = {};
-
-  state.doctorTarget = null;
-  state.seerTarget = null;
-
-  state.nightPoisonTargets = [];
-  state.nightProtectedPlayers = [];
-  state.nightDeaths = [];
-
-  state.witchStates = {};
-
-  state.passMode = null;
-
-  state.votingOrder = [];
-  state.votingIndex = 0;
-  state.votes = {};
-  state.selectedVote = null;
-
-  state.hunterQueue = [];
-  state.hunterMode = null;
-
-  state.started = false;
-
-  state.manualRoles = {};
-
-  state.transitionLock = false;
-  state.votingResolved = false;
-  state.nightResolved = false;
-  state.actionLocked = false;
-  state.voteLocked = false;
-
-  state.modalCallback =
+  state.discussionInterval =
     null;
-}
 
 
-/* =========================================================
-   START GAME
-   ========================================================= */
-
-function startGame() {
-
-  if (
-    state.transitionLock
-  ) {
-    return;
-  }
-
-  if (
-    !validateRoleSetup()
-  ) {
-    return;
-  }
-
-  let roles;
-
-  if (
-    state.distributionMode ===
-    "manual"
-  ) {
-
-    roles =
-      buildManualRoles();
-
-    if (!roles) {
-      return;
-    }
-
-  } else {
-
-    roles =
-      buildRandomRoles();
-  }
-
-  state.players.forEach(
-    (player, index) => {
-
-      player.role =
-        roles[index];
-
-      player.alive =
-        true;
-
-    }
-  );
-
-  state.night = 1;
-
-  state.currentPlayer = null;
-
-  state.wolfChoices = {};
-
-  state.doctorTarget = null;
-  state.seerTarget = null;
-
-  state.nightPoisonTargets = [];
-  state.nightProtectedPlayers = [];
-  state.nightDeaths = [];
-
-  state.witchStates = {};
-
-  state.passMode = null;
-
-  state.votingOrder = [];
-  state.votingIndex = 0;
-  state.votes = {};
-  state.selectedVote = null;
-
-  state.hunterQueue = [];
-  state.hunterMode = null;
-
-  state.started = true;
-
-  state.transitionLock = false;
-  state.votingResolved = false;
-  state.nightResolved = false;
-  state.actionLocked = false;
-  state.voteLocked = false;
-
-  state.players.forEach(
-    player => {
-
-      if (
-        player.role === "witch"
-      ) {
-
-        state.witchStates[
-          player.id
-        ] = {
-
-          healUsed: false,
-          poisonUsed: false
-
-        };
-
-      }
-
-    }
-  );
-
-  beginNight();
-}
+  stopInterfaceMusic();
 
 
-/* =========================================================
-   BEGIN NIGHT
-   ========================================================= */
+  state.players =
+    [];
 
-function beginNight() {
-
-  state.nightResolved =
-    false;
-
-  state.actionLocked =
-    false;
-
-  state.transitionLock =
-    false;
-
-  const alive =
-    alivePlayers();
+  state.night =
+    1;
 
   state.nightOrder =
-    [...alive].sort(
-      (a, b) =>
-        a.name.localeCompare(
-          b.name,
-          "ar"
-        )
-    );
+    [];
 
   state.nightIndex =
     0;
 
-  state.wolfChoices = {};
+  state.currentPlayer =
+    null;
+
+  state.selectedTarget =
+    null;
+
+  state.currentAction =
+    null;
+
+  state.wolfChoices =
+    {};
 
   state.doctorTarget =
     null;
@@ -1750,18 +2264,298 @@ function beginNight() {
   state.nightDeaths =
     [];
 
-  if ($("nightNumber")) {
+  state.witchStates =
+    {};
 
-    $("nightNumber").textContent =
-      state.night;
-  }
+  state.passMode =
+    null;
 
-  showNextNightPlayer();
+  state.votingOrder =
+    [];
+
+  state.votingIndex =
+    0;
+
+  state.votes =
+    {};
+
+  state.selectedVote =
+    null;
+
+  state.hunterQueue =
+    [];
+
+  state.hunterMode =
+    null;
+
+  state.started =
+    false;
+
+  state.manualRoles =
+    {};
+
+  state.transitionLock =
+    false;
+
+  state.votingResolved =
+    false;
+
+  state.nightResolved =
+    false;
+
+  state.actionLocked =
+    false;
+
+  state.voteLocked =
+    false;
+
+  state.modalCallback =
+    null;
+
 }
 
 
 /* =========================================================
-   SHOW NEXT NIGHT PLAYER
+   START GAME
+   ========================================================= */
+
+function startGame() {
+
+  if (
+    state.transitionLock
+  ) {
+
+    return;
+
+  }
+
+
+  if (
+    !validateRoleSetup()
+  ) {
+
+    return;
+
+  }
+
+
+  let roles;
+
+
+  if (
+    state.distributionMode ===
+    "manual"
+  ) {
+
+    roles =
+      buildManualRoles();
+
+    if (!roles) {
+
+      return;
+
+    }
+
+  } else {
+
+    roles =
+      buildRandomRoles();
+
+  }
+
+
+  state.players.forEach(
+    (player, index) => {
+
+      player.role =
+        roles[index];
+
+      player.alive =
+        true;
+
+    }
+  );
+
+
+  state.night =
+    1;
+
+  state.currentPlayer =
+    null;
+
+  state.wolfChoices =
+    {};
+
+  state.doctorTarget =
+    null;
+
+  state.seerTarget =
+    null;
+
+  state.nightPoisonTargets =
+    [];
+
+  state.nightProtectedPlayers =
+    [];
+
+  state.nightDeaths =
+    [];
+
+  state.witchStates =
+    {};
+
+  state.passMode =
+    null;
+
+  state.votingOrder =
+    [];
+
+  state.votingIndex =
+    0;
+
+  state.votes =
+    {};
+
+  state.selectedVote =
+    null;
+
+  state.hunterQueue =
+    [];
+
+  state.hunterMode =
+    null;
+
+  state.started =
+    true;
+
+  state.transitionLock =
+    false;
+
+  state.votingResolved =
+    false;
+
+  state.nightResolved =
+    false;
+
+  state.actionLocked =
+    false;
+
+  state.voteLocked =
+    false;
+
+
+  /*
+   * كل ساحر عنده حالة خاصة به
+   */
+
+  state.players.forEach(
+    player => {
+
+      if (
+        player.role ===
+        "witch"
+      ) {
+
+        state.witchStates[
+          player.id
+        ] = {
+
+          healUsed:
+            false,
+
+          poisonUsed:
+            false
+
+        };
+
+      }
+
+    }
+  );
+
+
+  beginNight();
+
+}
+
+
+/* =========================================================
+   BEGIN NIGHT
+   ========================================================= */
+
+function beginNight() {
+
+  state.nightResolved =
+    false;
+
+  state.votingResolved =
+    false;
+
+  state.voteLocked =
+    false;
+
+  state.actionLocked =
+    false;
+
+  state.transitionLock =
+    false;
+
+
+  const alive =
+    alivePlayers();
+
+
+  state.nightOrder =
+    [...alive].sort(
+      (a, b) =>
+        a.name.localeCompare(
+          b.name,
+          "ar"
+        )
+    );
+
+
+  state.nightIndex =
+    0;
+
+
+  state.wolfChoices =
+    {};
+
+  state.doctorTarget =
+    null;
+
+  state.seerTarget =
+    null;
+
+  state.nightPoisonTargets =
+    [];
+
+  state.nightProtectedPlayers =
+    [];
+
+  state.nightDeaths =
+    [];
+
+
+  if (
+    $("nightNumber")
+  ) {
+
+    $("nightNumber")
+      .textContent =
+      state.night;
+
+  }
+
+
+  showNextNightPlayer();
+
+}
+
+
+/* =========================================================
+   NEXT NIGHT PLAYER
    ========================================================= */
 
 function showNextNightPlayer() {
@@ -1769,8 +2563,11 @@ function showNextNightPlayer() {
   if (
     state.nightResolved
   ) {
+
     return;
+
   }
+
 
   while (
     state.nightIndex <
@@ -1783,7 +2580,9 @@ function showNextNightPlayer() {
   ) {
 
     state.nightIndex++;
+
   }
+
 
   if (
     state.nightIndex >=
@@ -1793,12 +2592,15 @@ function showNextNightPlayer() {
     resolveNight();
 
     return;
+
   }
+
 
   const player =
     state.nightOrder[
       state.nightIndex
     ];
+
 
   state.currentPlayer =
     player;
@@ -1812,27 +2614,39 @@ function showNextNightPlayer() {
   state.actionLocked =
     false;
 
+
   resetRoleScreen();
 
-  if ($("currentPlayerName")) {
+
+  if (
+    $("currentPlayerName")
+  ) {
 
     $("currentPlayerName")
       .textContent =
       player.name;
+
   }
 
-  if ($("nightNumber")) {
+
+  if (
+    $("nightNumber")
+  ) {
 
     $("nightNumber")
       .textContent =
       state.night;
+
   }
 
+
   updatePlayerAvatars();
+
 
   showScreen(
     "roleScreen"
   );
+
 }
 
 
@@ -1849,8 +2663,11 @@ function setAvatarElement(
     !element ||
     !player
   ) {
+
     return;
+
   }
+
 
   if (
     player.avatar
@@ -1871,7 +2688,9 @@ function setAvatarElement(
 
     element.textContent =
       "👤";
+
   }
+
 }
 
 
@@ -1881,6 +2700,7 @@ function updatePlayerAvatars() {
     state.currentPlayer;
 
   if (!player) return;
+
 
   setAvatarElement(
     $("currentPlayerAvatar"),
@@ -1901,6 +2721,7 @@ function updatePlayerAvatars() {
     $("votingPlayerAvatar"),
     player
   );
+
 }
 
 
@@ -1916,43 +2737,68 @@ function resetRoleScreen() {
   const revealed =
     $("roleRevealedArea");
 
+
   if (hidden) {
 
     hidden.classList.remove(
       "hidden"
     );
+
   }
+
 
   if (revealed) {
 
     revealed.classList.add(
       "hidden"
     );
+
   }
 
-  if ($("roleIcon")) {
 
-    $("roleIcon").textContent =
+  if (
+    $("roleIcon")
+  ) {
+
+    $("roleIcon")
+      .textContent =
       "❓";
+
   }
 
-  if ($("roleName")) {
 
-    $("roleName").textContent =
+  if (
+    $("roleName")
+  ) {
+
+    $("roleName")
+      .textContent =
       "الدور";
+
   }
 
-  if ($("teamBadge")) {
 
-    $("teamBadge").textContent =
+  if (
+    $("teamBadge")
+  ) {
+
+    $("teamBadge")
+      .textContent =
       "";
+
   }
 
-  if ($("roleDescription")) {
 
-    $("roleDescription").textContent =
+  if (
+    $("roleDescription")
+  ) {
+
+    $("roleDescription")
+      .textContent =
       "";
+
   }
+
 }
 
 
@@ -1967,34 +2813,56 @@ function revealRole() {
 
   if (!player) return;
 
+
   const role =
     getRole(player);
 
   if (!role) return;
 
-  if ($("roleIcon")) {
 
-    $("roleIcon").textContent =
+  if (
+    $("roleIcon")
+  ) {
+
+    $("roleIcon")
+      .textContent =
       role.icon;
+
   }
 
-  if ($("roleName")) {
 
-    $("roleName").textContent =
+  if (
+    $("roleName")
+  ) {
+
+    $("roleName")
+      .textContent =
       role.name;
+
   }
 
-  if ($("teamBadge")) {
 
-    $("teamBadge").textContent =
+  if (
+    $("teamBadge")
+  ) {
+
+    $("teamBadge")
+      .textContent =
       role.teamName;
+
   }
 
-  if ($("roleDescription")) {
 
-    $("roleDescription").textContent =
+  if (
+    $("roleDescription")
+  ) {
+
+    $("roleDescription")
+      .textContent =
       role.description;
+
   }
+
 
   $("roleHiddenArea")
     ?.classList.add(
@@ -2005,6 +2873,7 @@ function revealRole() {
     ?.classList.remove(
       "hidden"
     );
+
 }
 
 
@@ -2019,9 +2888,11 @@ function continueRole() {
 
   if (!player) return;
 
+
   showActionForPlayer(
     player
   );
+
 }
 
 
@@ -2042,24 +2913,35 @@ function showActionForPlayer(
   state.actionLocked =
     false;
 
-  if ($("actionPlayerName")) {
+
+  if (
+    $("actionPlayerName")
+  ) {
 
     $("actionPlayerName")
       .textContent =
       player.name;
+
   }
 
-  if ($("actionNightNumber")) {
+
+  if (
+    $("actionNightNumber")
+  ) {
 
     $("actionNightNumber")
       .textContent =
       state.night;
+
   }
+
 
   state.currentPlayer =
     player;
 
+
   updatePlayerAvatars();
+
 
   $("confirmActionBtn")
     ?.classList.add(
@@ -2071,12 +2953,28 @@ function showActionForPlayer(
       "hidden"
     );
 
-  if ($("actionTargets")) {
+
+  $("confirmActionBtn")
+    ?.removeAttribute(
+      "disabled"
+    );
+
+  $("skipActionBtn")
+    ?.removeAttribute(
+      "disabled"
+    );
+
+
+  if (
+    $("actionTargets")
+  ) {
 
     $("actionTargets")
       .innerHTML =
       "";
+
   }
+
 
   switch (
     player.role
@@ -2090,6 +2988,7 @@ function showActionForPlayer(
 
       break;
 
+
     case "doctor":
 
       setupDoctorAction(
@@ -2097,6 +2996,7 @@ function showActionForPlayer(
       );
 
       break;
+
 
     case "seer":
 
@@ -2106,6 +3006,7 @@ function showActionForPlayer(
 
       break;
 
+
     case "witch":
 
       setupWitchAction(
@@ -2113,6 +3014,7 @@ function showActionForPlayer(
       );
 
       break;
+
 
     case "hunter":
 
@@ -2122,6 +3024,7 @@ function showActionForPlayer(
 
       break;
 
+
     default:
 
       setupVillagerAction(
@@ -2129,11 +3032,14 @@ function showActionForPlayer(
       );
 
       break;
+
   }
+
 
   showScreen(
     "actionScreen"
   );
+
 }
 
 
@@ -2151,51 +3057,56 @@ function renderTargets(
 
   if (!container) return;
 
+
   container.innerHTML =
     players.length
-      ? players.map(
-          player => `
 
-            <button
-              class="target-btn"
-              data-target-id="${player.id}"
-              type="button"
-            >
+      ? players
+          .map(
+            player => `
 
-              <span class="target-player-info">
+              <button
+                class="target-btn"
+                data-target-id="${player.id}"
+                type="button"
+              >
 
-                ${
-                  player.avatar
-                    ? `
-                      <img
-                        src="${escapeHTML(
-                          player.avatar
-                        )}"
-                        alt=""
-                        class="target-avatar"
-                      >
-                    `
-                    : `
-                      <span class="target-avatar target-avatar-empty">
-                        👤
-                      </span>
-                    `
-                }
+                <span class="target-player-info">
 
-                <span>
-                  ${escapeHTML(
-                    player.name
-                  )}
+                  ${
+                    player.avatar
+                      ? `
+                        <img
+                          src="${escapeHTML(
+                            player.avatar
+                          )}"
+                          alt=""
+                          class="target-avatar"
+                        >
+                      `
+                      : `
+                        <span class="target-avatar target-avatar-empty">
+                          👤
+                        </span>
+                      `
+                  }
+
+                  <span>
+                    ${escapeHTML(
+                      player.name
+                    )}
+                  </span>
+
                 </span>
 
-              </span>
+                <span>›</span>
 
-              <span>›</span>
+              </button>
 
-            </button>
+            `
+          )
+          .join("")
 
-          `
-        ).join("")
       : `
 
           <div class="hint">
@@ -2203,6 +3114,7 @@ function renderTargets(
           </div>
 
         `;
+
 
   container
     .querySelectorAll(
@@ -2218,8 +3130,11 @@ function renderTargets(
             if (
               state.actionLocked
             ) {
+
               return;
+
             }
+
 
             container
               .querySelectorAll(
@@ -2232,12 +3147,15 @@ function renderTargets(
                   )
               );
 
+
             button.classList.add(
               "selected"
             );
 
+
             state.selectedTarget =
               button.dataset.targetId;
+
 
             $("confirmActionBtn")
               ?.classList.remove(
@@ -2250,13 +3168,18 @@ function renderTargets(
       }
     );
 
-  if (allowSkip) {
+
+  if (
+    allowSkip
+  ) {
 
     $("skipActionBtn")
       ?.classList.remove(
         "hidden"
       );
+
   }
+
 }
 
 
@@ -2277,19 +3200,24 @@ function setupWolfAction(
   $("actionDescription").textContent =
     "اختر لاعبًا لاستهدافه. سيتم احتساب اختيارات جميع القتلة.";
 
+
   const targets =
     alivePlayers().filter(
       target =>
-        target.id !== player.id
+        target.id !==
+        player.id
     );
+
 
   renderTargets(
     targets,
     true
   );
 
+
   state.currentAction =
     "wolf";
+
 }
 
 
@@ -2310,13 +3238,16 @@ function setupDoctorAction(
   $("actionDescription").textContent =
     "يمكنك حماية لاعب واحد من هجوم القتلة.";
 
+
   renderTargets(
     alivePlayers(),
     true
   );
 
+
   state.currentAction =
     "doctor";
+
 }
 
 
@@ -2337,19 +3268,24 @@ function setupSeerAction(
   $("actionDescription").textContent =
     "ستظهر لك نتيجة اللاعب الذي تختاره فقط.";
 
+
   const targets =
     alivePlayers().filter(
       target =>
-        target.id !== player.id
+        target.id !==
+        player.id
     );
+
 
   renderTargets(
     targets,
     true
   );
 
+
   state.currentAction =
     "seer";
+
 }
 
 
@@ -2370,29 +3306,58 @@ function setupWitchAction(
   $("actionDescription").textContent =
     "كل ساحر لديه إكسير وسم مستقلان عن بقية السحرة.";
 
+
   const witch =
     state.witchStates[
       player.id
     ];
+
+
+  if (!witch) {
+
+    state.witchStates[
+      player.id
+    ] = {
+
+      healUsed:
+        false,
+
+      poisonUsed:
+        false
+
+    };
+
+  }
+
+
+  const currentWitch =
+    state.witchStates[
+      player.id
+    ];
+
 
   const container =
     $("actionTargets");
 
   if (!container) return;
 
+
   container.innerHTML =
     "";
+
 
   const healButton =
     document.createElement(
       "button"
     );
 
+
   healButton.className =
     "target-btn";
 
   healButton.type =
     "button";
+
 
   healButton.innerHTML = `
 
@@ -2402,7 +3367,7 @@ function setupWitchAction(
 
     <span>
       ${
-        witch.healUsed
+        currentWitch.healUsed
           ? "مستخدم"
           : "متاح"
       }
@@ -2410,8 +3375,9 @@ function setupWitchAction(
 
   `;
 
+
   if (
-    witch.healUsed
+    currentWitch.healUsed
   ) {
 
     healButton.classList.add(
@@ -2427,14 +3393,18 @@ function setupWitchAction(
         if (
           state.actionLocked
         ) {
+
           return;
+
         }
+
 
         state.selectedTarget =
           null;
 
         state.currentAction =
           "witch-heal";
+
 
         container
           .querySelectorAll(
@@ -2447,9 +3417,11 @@ function setupWitchAction(
               )
           );
 
+
         healButton.classList.add(
           "selected"
         );
+
 
         $("confirmActionBtn")
           ?.classList.remove(
@@ -2458,6 +3430,7 @@ function setupWitchAction(
 
       }
     );
+
   }
 
 
@@ -2466,11 +3439,13 @@ function setupWitchAction(
       "button"
     );
 
+
   poisonButton.className =
     "target-btn";
 
   poisonButton.type =
     "button";
+
 
   poisonButton.innerHTML = `
 
@@ -2480,7 +3455,7 @@ function setupWitchAction(
 
     <span>
       ${
-        witch.poisonUsed
+        currentWitch.poisonUsed
           ? "مستخدم"
           : "متاح"
       }
@@ -2488,8 +3463,9 @@ function setupWitchAction(
 
   `;
 
+
   if (
-    witch.poisonUsed
+    currentWitch.poisonUsed
   ) {
 
     poisonButton.classList.add(
@@ -2505,14 +3481,18 @@ function setupWitchAction(
         if (
           state.actionLocked
         ) {
+
           return;
+
         }
+
 
         state.currentAction =
           "witch-poison";
 
         state.selectedTarget =
           null;
+
 
         container.innerHTML = `
 
@@ -2525,17 +3505,21 @@ function setupWitchAction(
 
         `;
 
+
         renderTargets(
           alivePlayers().filter(
             target =>
-              target.id !== player.id
+              target.id !==
+              player.id
           ),
           false
         );
 
       }
     );
+
   }
+
 
   container.appendChild(
     healButton
@@ -2545,13 +3529,16 @@ function setupWitchAction(
     poisonButton
   );
 
+
   $("skipActionBtn")
     ?.classList.remove(
       "hidden"
     );
 
+
   state.currentAction =
     "witch";
+
 }
 
 
@@ -2570,13 +3557,16 @@ function setupHunterNightAction() {
   $("actionDescription").textContent =
     "انتظر حتى يأتي دورك في حالة موتك.";
 
+
   $("skipActionBtn")
     ?.classList.remove(
       "hidden"
     );
 
+
   state.currentAction =
     "skip";
+
 }
 
 
@@ -2595,13 +3585,16 @@ function setupVillagerAction() {
   $("actionDescription").textContent =
     "أنت قروي. لا توجد لديك حركة ليلية.";
 
+
   $("skipActionBtn")
     ?.classList.remove(
       "hidden"
     );
 
+
   state.currentAction =
     "skip";
+
 }
 
 
@@ -2614,26 +3607,28 @@ function confirmAction() {
   if (
     state.actionLocked
   ) {
+
     return;
+
   }
+
 
   const player =
     state.currentPlayer;
 
   if (!player) return;
 
-  /*
-   * قفل فوري لمنع الضغط المزدوج
-   */
 
   state.actionLocked =
     true;
+
 
   $("confirmActionBtn")
     ?.setAttribute(
       "disabled",
       "disabled"
     );
+
 
   switch (
     state.currentAction
@@ -2659,16 +3654,20 @@ function confirmAction() {
         );
 
         return;
+
       }
+
 
       state.wolfChoices[
         player.id
       ] =
         state.selectedTarget;
 
+
       finishNightTurn();
 
       break;
+
     }
 
 
@@ -2678,9 +3677,11 @@ function confirmAction() {
         state.selectedTarget ||
         null;
 
+
       finishNightTurn();
 
       break;
+
     }
 
 
@@ -2704,24 +3705,31 @@ function confirmAction() {
         );
 
         return;
+
       }
+
 
       state.seerTarget =
         state.selectedTarget;
+
 
       const target =
         getPlayer(
           state.selectedTarget
         );
 
+
       const targetRole =
         getRole(target);
 
+
       showModal(
+
         "نتيجة الكشف",
 
         `${target.name} ينتمي إلى ${
-          targetRole.team === "wolves"
+          targetRole.team ===
+          "wolves"
             ? "فريق القتلة 🔪"
             : "فريق القرية 🏘️"
         }`,
@@ -2738,9 +3746,11 @@ function confirmAction() {
           finishNightTurn();
 
         }
+
       );
 
       break;
+
     }
 
 
@@ -2750,6 +3760,7 @@ function confirmAction() {
         state.witchStates[
           player.id
         ];
+
 
       if (
         !witch ||
@@ -2770,10 +3781,13 @@ function confirmAction() {
         );
 
         return;
+
       }
+
 
       witch.healUsed =
         true;
+
 
       if (
         !state.nightProtectedPlayers
@@ -2786,16 +3800,20 @@ function confirmAction() {
           .push(
             player.id
           );
+
       }
+
 
       showToast(
         "تم استخدام إكسير الشفاء",
         "success"
       );
 
+
       finishNightTurn();
 
       break;
+
     }
 
 
@@ -2805,6 +3823,7 @@ function confirmAction() {
         state.witchStates[
           player.id
         ];
+
 
       if (
         !witch ||
@@ -2825,7 +3844,9 @@ function confirmAction() {
         );
 
         return;
+
       }
+
 
       if (
         !state.selectedTarget
@@ -2845,10 +3866,13 @@ function confirmAction() {
         );
 
         return;
+
       }
+
 
       witch.poisonUsed =
         true;
+
 
       if (
         !state.nightPoisonTargets
@@ -2861,16 +3885,20 @@ function confirmAction() {
           .push(
             state.selectedTarget
           );
+
       }
+
 
       showToast(
         "تم استخدام السم",
         "success"
       );
 
+
       finishNightTurn();
 
       break;
+
     }
 
 
@@ -2879,7 +3907,9 @@ function confirmAction() {
       finishNightTurn();
 
       break;
+
   }
+
 }
 
 
@@ -2892,11 +3922,15 @@ function skipAction() {
   if (
     state.actionLocked
   ) {
+
     return;
+
   }
+
 
   state.actionLocked =
     true;
+
 
   $("skipActionBtn")
     ?.setAttribute(
@@ -2904,7 +3938,9 @@ function skipAction() {
       "disabled"
     );
 
+
   finishNightTurn();
+
 }
 
 
@@ -2917,10 +3953,14 @@ function finishNightTurn() {
   if (
     state.nightResolved
   ) {
+
     return;
+
   }
 
+
   state.nightIndex++;
+
 
   $("confirmActionBtn")
     ?.removeAttribute(
@@ -2932,6 +3972,7 @@ function finishNightTurn() {
       "disabled"
     );
 
+
   if (
     state.nightIndex >=
     state.nightOrder.length
@@ -2940,12 +3981,15 @@ function finishNightTurn() {
     resolveNight();
 
     return;
+
   }
+
 
   let nextPlayer =
     state.nightOrder[
       state.nightIndex
     ];
+
 
   while (
     nextPlayer &&
@@ -2960,19 +4004,24 @@ function finishNightTurn() {
       state.nightOrder[
         state.nightIndex
       ];
+
   }
+
 
   if (!nextPlayer) {
 
     resolveNight();
 
     return;
+
   }
+
 
   showPassScreen(
     nextPlayer,
     "night"
   );
+
 }
 
 
@@ -2988,8 +4037,10 @@ function showPassScreen(
   state.passMode =
     mode;
 
+
   let player =
     playerOrName;
+
 
   if (
     typeof playerOrName ===
@@ -3002,19 +4053,26 @@ function showPassScreen(
           p.name ===
           playerOrName
       );
+
   }
+
 
   if (player) {
 
     state.currentPlayer =
       player;
 
-    if ($("passPlayerName")) {
+
+    if (
+      $("passPlayerName")
+    ) {
 
       $("passPlayerName")
         .textContent =
         player.name;
+
     }
+
 
     setAvatarElement(
       $("passPlayerAvatar"),
@@ -3023,17 +4081,23 @@ function showPassScreen(
 
   } else {
 
-    if ($("passPlayerName")) {
+    if (
+      $("passPlayerName")
+    ) {
 
       $("passPlayerName")
         .textContent =
         playerOrName;
+
     }
+
   }
+
 
   showScreen(
     "passScreen"
   );
+
 }
 
 
@@ -3050,7 +4114,9 @@ function continuePass() {
     showNextNightPlayer();
 
     return;
+
   }
+
 
   if (
     state.passMode ===
@@ -3063,7 +4129,9 @@ function continuePass() {
     showNextVoter();
 
     return;
+
   }
+
 }
 
 
@@ -3076,17 +4144,22 @@ function resolveNight() {
   if (
     state.nightResolved
   ) {
+
     return;
+
   }
+
 
   state.nightResolved =
     true;
 
+
   const deaths =
     new Set();
 
+
   /*
-   * هجوم المستذئبين
+   * هجوم القتلة
    */
 
   const wolfVotes =
@@ -3094,32 +4167,44 @@ function resolveNight() {
       state.wolfChoices
     );
 
+
   if (
     wolfVotes.length > 0
   ) {
 
-    const counts = {};
+    const counts =
+      {};
+
 
     wolfVotes.forEach(
       targetId => {
 
         if (
-          !getPlayer(targetId)?.alive
+          !getPlayer(
+            targetId
+          )?.alive
         ) {
+
           return;
+
         }
 
+
         counts[targetId] =
-          (counts[targetId] || 0) +
-          1;
+          (
+            counts[targetId] ||
+            0
+          ) + 1;
 
       }
     );
+
 
     const values =
       Object.values(
         counts
       );
+
 
     if (
       values.length > 0
@@ -3130,6 +4215,7 @@ function resolveNight() {
           ...values
         );
 
+
       const winners =
         Object.keys(
           counts
@@ -3139,20 +4225,20 @@ function resolveNight() {
             highest
         );
 
-      /*
-       * إذا صار تعادل بين المستذئبين،
-       * لا أحد يموت من الهجوم.
-       */
 
       if (
-        winners.length === 1
+        winners.length ===
+        1
       ) {
 
         deaths.add(
           winners[0]
         );
+
       }
+
     }
+
   }
 
 
@@ -3170,11 +4256,12 @@ function resolveNight() {
     deaths.delete(
       state.doctorTarget
     );
+
   }
 
 
   /*
-   * سم جميع السحرة
+   * سم السحرة
    */
 
   state.nightPoisonTargets
@@ -3188,7 +4275,10 @@ function resolveNight() {
           target?.alive
         ) {
 
-          deaths.add(id);
+          deaths.add(
+            id
+          );
+
         }
 
       }
@@ -3203,7 +4293,9 @@ function resolveNight() {
     .forEach(
       id => {
 
-        deaths.delete(id);
+        deaths.delete(
+          id
+        );
 
       }
     );
@@ -3216,21 +4308,27 @@ function resolveNight() {
   const hunterDeaths =
     [];
 
+
   state.nightDeaths.forEach(
     id => {
 
       const player =
         getPlayer(id);
 
+
       if (
         !player ||
         !player.alive
       ) {
+
         return;
+
       }
+
 
       player.alive =
         false;
+
 
       if (
         player.role ===
@@ -3240,6 +4338,7 @@ function resolveNight() {
         hunterDeaths.push(
           player
         );
+
       }
 
     }
@@ -3259,9 +4358,12 @@ function resolveNight() {
     startNextHunterTurn();
 
     return;
+
   }
 
+
   finishNightResult();
+
 }
 
 
@@ -3272,7 +4374,8 @@ function resolveNight() {
 function startNextHunterTurn() {
 
   if (
-    state.hunterQueue.length === 0
+    state.hunterQueue.length ===
+    0
   ) {
 
     if (
@@ -3285,20 +4388,26 @@ function startNextHunterTurn() {
     } else {
 
       finishVoteResult();
+
     }
 
     return;
+
   }
+
 
   const hunter =
     state.hunterQueue.shift();
+
 
   if (!hunter) {
 
     startNextHunterTurn();
 
     return;
+
   }
+
 
   state.currentPlayer =
     hunter;
@@ -3308,6 +4417,7 @@ function startNextHunterTurn() {
 
   state.actionLocked =
     false;
+
 
   $("actionPlayerName")
     .textContent =
@@ -3325,37 +4435,49 @@ function startNextHunterTurn() {
     .textContent =
     "لقد خرجت من اللعبة. يمكنك إسقاط لاعب آخر معك.";
 
+
   $("confirmActionBtn")
     ?.classList.add(
       "hidden"
     );
+
 
   $("skipActionBtn")
     ?.classList.remove(
       "hidden"
     );
 
+
   $("skipActionBtn")
     ?.removeAttribute(
       "disabled"
     );
 
+
   updatePlayerAvatars();
 
+
   renderTargets(
+
     alivePlayers().filter(
       player =>
-        player.id !== hunter.id
+        player.id !==
+        hunter.id
     ),
+
     true
+
   );
+
 
   state.currentAction =
     "hunter";
 
+
   showScreen(
     "actionScreen"
   );
+
 }
 
 
@@ -3364,13 +4486,17 @@ function handleHunterConfirm() {
   if (
     state.actionLocked
   ) {
+
     return;
+
   }
+
 
   const hunter =
     state.currentPlayer;
 
   if (!hunter) return;
+
 
   if (
     !state.selectedTarget
@@ -3382,15 +4508,19 @@ function handleHunterConfirm() {
     );
 
     return;
+
   }
+
 
   state.actionLocked =
     true;
+
 
   const target =
     getPlayer(
       state.selectedTarget
     );
+
 
   if (
     target &&
@@ -3400,6 +4530,7 @@ function handleHunterConfirm() {
     target.alive =
       false;
 
+
     if (
       target.role ===
       "hunter"
@@ -3408,7 +4539,9 @@ function handleHunterConfirm() {
       state.hunterQueue.push(
         target
       );
+
     }
+
 
     if (
       state.hunterMode ===
@@ -3421,18 +4554,24 @@ function handleHunterConfirm() {
       state.nightDeaths.push(
         target.id
       );
+
     }
+
   }
+
 
   state.selectedTarget =
     null;
+
 
   $("confirmActionBtn")
     ?.removeAttribute(
       "disabled"
     );
 
+
   startNextHunterTurn();
+
 }
 
 
@@ -3445,13 +4584,18 @@ function handleHunterSkip() {
   if (
     state.actionLocked
   ) {
+
     return;
+
   }
+
 
   state.actionLocked =
     true;
 
+
   startNextHunterTurn();
+
 }
 
 
@@ -3471,11 +4615,15 @@ function finishNightResult() {
         Boolean
       );
 
+
   if (
-    deaths.length === 0
+    deaths.length ===
+    0
   ) {
 
-    if ($("nightResultText")) {
+    if (
+      $("nightResultText")
+    ) {
 
       $("nightResultText")
         .innerHTML = `
@@ -3487,11 +4635,14 @@ function finishNightResult() {
           لم يمت أي لاعب.
 
         `;
+
     }
 
   } else {
 
-    if ($("nightResultText")) {
+    if (
+      $("nightResultText")
+    ) {
 
       $("nightResultText")
         .innerHTML = `
@@ -3514,18 +4665,25 @@ function finishNightResult() {
           ).join("<br>")}
 
         `;
+
     }
+
   }
+
 
   showScreen(
     "nightResultScreen"
   );
 
+
   if (
     checkWinner()
   ) {
+
     return;
+
   }
+
 }
 
 
@@ -3539,14 +4697,22 @@ function startDiscussion() {
     state.discussionInterval
   );
 
+
   state.discussionSeconds =
     120;
 
+
   updateTimer();
+
+
+  /*
+   * showScreen يشغل 6.mp3
+   */
 
   showScreen(
     "discussionScreen"
   );
+
 
   state.discussionInterval =
     setInterval(
@@ -3555,6 +4721,7 @@ function startDiscussion() {
         state.discussionSeconds--;
 
         updateTimer();
+
 
         if (
           state.discussionSeconds <=
@@ -3568,16 +4735,26 @@ function startDiscussion() {
           state.discussionInterval =
             null;
 
+
           showToast(
             "انتهى وقت النقاش",
             "error"
           );
+
+
+          /*
+           * startVoting -> showScreen
+           * ويوقف 6.mp3 تلقائيًا
+           */
+
+          startVoting();
 
         }
 
       },
       1000
     );
+
 }
 
 
@@ -3585,17 +4762,20 @@ function updateTimer() {
 
   const min =
     Math.floor(
-      state.discussionSeconds / 60
+      state.discussionSeconds /
+      60
     )
       .toString()
       .padStart(
         2,
         "0"
       );
+
 
   const sec =
     (
-      state.discussionSeconds % 60
+      state.discussionSeconds %
+      60
     )
       .toString()
       .padStart(
@@ -3603,11 +4783,16 @@ function updateTimer() {
         "0"
       );
 
-  if ($("timer")) {
+
+  if (
+    $("timer")
+  ) {
 
     $("timer").textContent =
       `${min}:${sec}`;
+
   }
+
 }
 
 
@@ -3620,12 +4805,19 @@ function startVoting() {
   if (
     state.votingResolved
   ) {
+
     return;
+
   }
+
 
   clearInterval(
     state.discussionInterval
   );
+
+  state.discussionInterval =
+    null;
+
 
   state.votingOrder =
     [...alivePlayers()]
@@ -3636,6 +4828,7 @@ function startVoting() {
             "ar"
           )
       );
+
 
   state.votingIndex =
     0;
@@ -3652,12 +4845,14 @@ function startVoting() {
   state.voteLocked =
     false;
 
+
   showNextVoter();
+
 }
 
 
 /* =========================================================
-   SHOW NEXT VOTER
+   NEXT VOTER
    ========================================================= */
 
 function showNextVoter() {
@@ -3665,12 +4860,11 @@ function showNextVoter() {
   if (
     state.votingResolved
   ) {
+
     return;
+
   }
 
-  /*
-   * تخطي اللاعبين الميتين
-   */
 
   while (
     state.votingIndex <
@@ -3682,20 +4876,23 @@ function showNextVoter() {
         state.votingIndex
       ];
 
+
     if (
       voter &&
-      getPlayer(voter.id)?.alive
+      getPlayer(
+        voter.id
+      )?.alive
     ) {
 
       break;
+
     }
 
+
     state.votingIndex++;
+
   }
 
-  /*
-   * انتهى التصويت
-   */
 
   if (
     state.votingIndex >=
@@ -3705,12 +4902,15 @@ function showNextVoter() {
     resolveVotes();
 
     return;
+
   }
+
 
   const voter =
     state.votingOrder[
       state.votingIndex
     ];
+
 
   state.currentPlayer =
     voter;
@@ -3721,32 +4921,39 @@ function showNextVoter() {
   state.voteLocked =
     false;
 
+
   $("votingPlayerName")
     .textContent =
     voter.name;
+
 
   setAvatarElement(
     $("votingPlayerAvatar"),
     voter
   );
 
+
   renderVotingTargets(
     voter
   );
+
 
   $("confirmVoteBtn")
     ?.classList.add(
       "hidden"
     );
 
+
   $("confirmVoteBtn")
     ?.removeAttribute(
       "disabled"
     );
 
+
   showScreen(
     "votingScreen"
   );
+
 }
 
 
@@ -3763,11 +4970,14 @@ function renderVotingTargets(
 
   if (!container) return;
 
+
   const targets =
     alivePlayers().filter(
       player =>
-        player.id !== voter.id
+        player.id !==
+        voter.id
     );
+
 
   container.innerHTML =
     targets.map(
@@ -3820,10 +5030,12 @@ function renderVotingTargets(
       `
     ).join("");
 
+
   const skip =
     document.createElement(
       "button"
     );
+
 
   skip.className =
     "target-btn";
@@ -3833,6 +5045,7 @@ function renderVotingTargets(
 
   skip.dataset.voteId =
     "SKIP";
+
 
   skip.innerHTML = `
 
@@ -3846,9 +5059,11 @@ function renderVotingTargets(
 
   `;
 
+
   container.appendChild(
     skip
   );
+
 
   container
     .querySelectorAll(
@@ -3864,8 +5079,11 @@ function renderVotingTargets(
             if (
               state.voteLocked
             ) {
+
               return;
+
             }
+
 
             container
               .querySelectorAll(
@@ -3878,12 +5096,15 @@ function renderVotingTargets(
                   )
               );
 
+
             button.classList.add(
               "selected"
             );
 
+
             state.selectedVote =
               button.dataset.voteId;
+
 
             $("confirmVoteBtn")
               ?.classList.remove(
@@ -3895,6 +5116,7 @@ function renderVotingTargets(
 
       }
     );
+
 }
 
 
@@ -3907,14 +5129,20 @@ function confirmVote() {
   if (
     state.voteLocked
   ) {
+
     return;
+
   }
+
 
   if (
     state.votingResolved
   ) {
+
     return;
+
   }
+
 
   if (
     !state.selectedVote
@@ -3926,17 +5154,23 @@ function confirmVote() {
     );
 
     return;
+
   }
+
 
   const voter =
     state.currentPlayer;
+
 
   if (
     !voter ||
     !voter.alive
   ) {
+
     return;
+
   }
+
 
   /*
    * قفل فوري
@@ -3945,39 +5179,54 @@ function confirmVote() {
   state.voteLocked =
     true;
 
+
   $("confirmVoteBtn")
     ?.setAttribute(
       "disabled",
       "disabled"
     );
 
+
   /*
    * منع نفس اللاعب من التصويت مرتين
    */
 
   if (
-    Object.prototype.hasOwnProperty.call(
-      state.votes,
-      voter.id
-    )
+    Object.prototype
+      .hasOwnProperty.call(
+        state.votes,
+        voter.id
+      )
   ) {
 
     return;
+
   }
+
 
   state.votes[
     voter.id
   ] =
     state.selectedVote;
 
+
+  /*
+   * صوت التصويت
+   */
+
+  audioSystem
+    .playVotingSound();
+
+
   state.votingIndex++;
+
 
   state.selectedVote =
     null;
 
+
   /*
-   * إذا خلصت قائمة المصوتين،
-   * نحل التصويت مرة واحدة فقط.
+   * إذا انتهى التصويت
    */
 
   if (
@@ -3988,12 +5237,19 @@ function confirmVote() {
     resolveVotes();
 
     return;
+
   }
+
+
+  /*
+   * اللاعب التالي
+   */
 
   const nextVoter =
     state.votingOrder[
       state.votingIndex
     ];
+
 
   if (
     !nextVoter ||
@@ -4003,12 +5259,15 @@ function confirmVote() {
     showNextVoter();
 
     return;
+
   }
+
 
   showPassScreen(
     nextVoter,
     "voting"
   );
+
 }
 
 
@@ -4021,12 +5280,14 @@ function resolveVotes() {
   if (
     state.votingResolved
   ) {
+
     return;
+
   }
 
+
   /*
-   * أهم قفل:
-   * يمنع resolveVotes من العمل مرتين.
+   * قفل نهائي
    */
 
   state.votingResolved =
@@ -4035,7 +5296,10 @@ function resolveVotes() {
   state.voteLocked =
     true;
 
-  const counts = {};
+
+  const counts =
+    {};
+
 
   Object.values(
     state.votes
@@ -4043,20 +5307,30 @@ function resolveVotes() {
     vote => {
 
       if (
-        vote === "SKIP"
+        vote ===
+        "SKIP"
       ) {
+
         return;
+
       }
 
+
       const target =
-        getPlayer(vote);
+        getPlayer(
+          vote
+        );
+
 
       if (
         !target ||
         !target.alive
       ) {
+
         return;
+
       }
+
 
       counts[vote] =
         (
@@ -4073,7 +5347,8 @@ function resolveVotes() {
       state.votes
     ).filter(
       vote =>
-        vote === "SKIP"
+        vote ===
+        "SKIP"
     ).length;
 
 
@@ -4088,7 +5363,8 @@ function resolveVotes() {
 
 
   if (
-    candidates.length > 0
+    candidates.length >
+    0
   ) {
 
     const highest =
@@ -4100,44 +5376,42 @@ function resolveVotes() {
         skipCount
       );
 
+
     const winners =
       candidates
         .filter(
           ([_, count]) =>
-            count === highest
+            count ===
+            highest
         )
         .map(
           ([id]) =>
             id
         );
 
-    /*
-     * إذا التخطي أخذ أعلى عدد
-     * نعتبره منافسًا أيضًا.
-     */
 
     if (
-      skipCount === highest
+      skipCount ===
+      highest
     ) {
 
       winners.push(
         "SKIP"
       );
+
     }
 
-    /*
-     * لاعب واحد فقط = خروج
-     *
-     * التعادل = لا أحد يخرج
-     */
 
     if (
-      winners.length === 1 &&
-      winners[0] !== "SKIP"
+      winners.length ===
+      1 &&
+      winners[0] !==
+      "SKIP"
     ) {
 
       eliminatedId =
         winners[0];
+
     }
 
   } else if (
@@ -4146,6 +5420,7 @@ function resolveVotes() {
 
     eliminatedId =
       null;
+
   }
 
 
@@ -4157,7 +5432,9 @@ function resolveVotes() {
     !eliminatedId
   ) {
 
-    if ($("voteResultText")) {
+    if (
+      $("voteResultText")
+    ) {
 
       $("voteResultText")
         .innerHTML = `
@@ -4170,13 +5447,16 @@ function resolveVotes() {
           على أعلى عدد من الأصوات.
 
         `;
+
     }
+
 
     showScreen(
       "voteResultScreen"
     );
 
     return;
+
   }
 
 
@@ -4184,6 +5464,7 @@ function resolveVotes() {
     getPlayer(
       eliminatedId
     );
+
 
   if (
     !eliminated ||
@@ -4195,6 +5476,7 @@ function resolveVotes() {
     );
 
     return;
+
   }
 
 
@@ -4203,8 +5485,7 @@ function resolveVotes() {
 
 
   /*
-   * إذا كان صيادًا،
-   * نوقف هنا حتى يأخذ فرصته.
+   * الصياد
    */
 
   if (
@@ -4212,7 +5493,9 @@ function resolveVotes() {
     "hunter"
   ) {
 
-    if ($("voteResultText")) {
+    if (
+      $("voteResultText")
+    ) {
 
       $("voteResultText")
         .innerHTML = `
@@ -4232,7 +5515,9 @@ function resolveVotes() {
           لكنه صياد، لذلك لديه فرصة أخيرة.
 
         `;
+
     }
+
 
     state.hunterQueue =
       [eliminated];
@@ -4240,11 +5525,13 @@ function resolveVotes() {
     state.hunterMode =
       "vote";
 
+
     showScreen(
       "voteResultScreen"
     );
 
     return;
+
   }
 
 
@@ -4254,7 +5541,9 @@ function resolveVotes() {
     );
 
 
-  if ($("voteResultText")) {
+  if (
+    $("voteResultText")
+  ) {
 
     $("voteResultText")
       .innerHTML = `
@@ -4277,11 +5566,14 @@ function resolveVotes() {
         ${role.name}
 
       `;
+
   }
+
 
   showScreen(
     "voteResultScreen"
   );
+
 }
 
 
@@ -4292,22 +5584,37 @@ function resolveVotes() {
 function continueAfterVote() {
 
   /*
-   * صياد التصويت
+   * مهم:
+   * لا نستخدم document.querySelectorAll("audio")
+   * هنا لأن showScreen هو المسؤول عن موسيقى الواجهات.
+   *
+   * وأيضًا لا نستدعي دالة غير موجودة.
+   */
+
+
+  /*
+   * 🏹 صياد التصويت
    */
 
   if (
-    state.hunterMode === "vote" &&
-    state.hunterQueue.length > 0
+    state.hunterMode ===
+      "vote" &&
+    state.hunterQueue.length >
+      0
   ) {
+
+    state.actionLocked =
+      false;
 
     startNextHunterTurn();
 
     return;
+
   }
 
 
   /*
-   * التحقق من الفائز
+   * 🏆 الفائز
    */
 
   if (
@@ -4315,21 +5622,38 @@ function continueAfterVote() {
   ) {
 
     return;
+
   }
 
 
   /*
-   * ليلة جديدة
+   * 🌙 ليلة جديدة
    */
+
+  state.hunterMode =
+    null;
+
+  state.hunterQueue =
+    [];
+
+  state.voteLocked =
+    false;
+
+  state.actionLocked =
+    false;
+
+  state.votingResolved =
+    false;
 
   state.night++;
 
   beginNight();
+
 }
 
 
 /* =========================================================
-   FINISH HUNTER VOTE
+   FINISH VOTE RESULT
    ========================================================= */
 
 function finishVoteResult() {
@@ -4337,13 +5661,19 @@ function finishVoteResult() {
   state.hunterMode =
     null;
 
+
   if (
     checkWinner()
   ) {
+
     return;
+
   }
 
-  if ($("voteResultText")) {
+
+  if (
+    $("voteResultText")
+  ) {
 
     $("voteResultText")
       .innerHTML += `
@@ -4352,16 +5682,19 @@ function finishVoteResult() {
         انتهى التصويت.
 
       `;
+
   }
+
 
   showScreen(
     "voteResultScreen"
   );
+
 }
 
 
 /* =========================================================
-   WINNER
+   WINNER CHECK
    ========================================================= */
 
 function checkWinner() {
@@ -4378,30 +5711,42 @@ function checkWinner() {
   ) {
 
     showWinner(
+
       "القرية",
+
       "🏘️",
+
       "فاز فريق القرية!"
+
     );
 
     return true;
+
   }
 
 
   if (
-    wolves >= villagers
+    wolves >=
+    villagers
   ) {
 
     showWinner(
+
       "المرتزقة",
+
       "🔪",
+
       "فاز فريق المرتزقة!"
+
     );
 
     return true;
+
   }
 
 
   return false;
+
 }
 
 
@@ -4419,99 +5764,121 @@ function showWinner(
     state.discussionInterval
   );
 
-  state.started =
-    false;
+  state.discussionInterval =
+    null;
 
-  $("winnerIcon")
-    ?.replaceChildren(
-      document.createTextNode(
-        icon
-      )
-    );
 
-  if ($("winnerTitle")) {
+  /*
+   * بيانات الشاشة
+   */
+
+  if (
+    $("winnerIcon")
+  ) {
+
+    $("winnerIcon")
+      .textContent =
+      icon;
+
+  }
+
+
+  if (
+    $("winnerTitle")
+  ) {
 
     $("winnerTitle")
       .textContent =
-      `فوز ${team}`;
+      team ===
+      "المرتزقة"
+        ? "فوز المرتزقة"
+        : "فوز القرية";
+
   }
 
-  if ($("winnerDescription")) {
+
+  if (
+    $("winnerDescription")
+  ) {
 
     $("winnerDescription")
       .textContent =
       description;
+
   }
 
-  if ($("winnerPlayers")) {
 
-    $("winnerPlayers")
-      .innerHTML =
-      state.players.map(
-        player => {
-
-          const role =
-            getRole(player);
-
-          return `
-
-            <div class="winner-player">
-
-              <span>
-
-                ${
-                  player.alive
-                    ? "🟢"
-                    : "🔴"
-                }
-
-                ${
-                  player.avatar
-                    ? `
-
-                      <img
-                        src="${escapeHTML(
-                          player.avatar
-                        )}"
-                        alt=""
-                        style="
-                          width:30px;
-                          height:30px;
-                          border-radius:50%;
-                          object-fit:cover;
-                          vertical-align:middle;
-                          margin-left:7px;
-                        "
-                      >
-
-                    `
-                    : ""
-                }
-
-                ${escapeHTML(
-                  player.name
-                )}
-
-              </span>
-
-              <span>
-
-                ${role.icon}
-                ${role.name}
-
-              </span>
-
-            </div>
-
-          `;
-
-        }
-      ).join("");
-  }
+  /*
+   * مهم جدًا:
+   *
+   * showScreen أولًا حتى يوقف
+   * الموسيقى الرئيسية والنقاش.
+   */
 
   showScreen(
     "winnerScreen"
   );
+
+
+  /*
+   * الآن نشغل موسيقى الفوز.
+   */
+
+  if (
+    audioSystem.isUserMuted
+  ) {
+
+    return;
+
+  }
+
+
+  const villageMusic =
+    getVillageWinMusic();
+
+  const mercenariesMusic =
+    getMercenariesWinMusic();
+
+
+  if (
+    team ===
+    "المرتزقة"
+  ) {
+
+    mercenariesMusic.currentTime =
+      0;
+
+    mercenariesMusic.volume =
+      0.8;
+
+    mercenariesMusic.loop =
+      false;
+
+    mercenariesMusic.play()
+      .catch(() => {});
+
+  }
+
+
+  else if (
+    team ===
+    "القرية"
+  ) {
+
+    villageMusic.currentTime =
+      0;
+
+    villageMusic.volume =
+      0.8;
+
+    villageMusic.loop =
+      false;
+
+    villageMusic.play()
+      .catch(() => {});
+
+  }
+
 }
 
 
@@ -4523,19 +5890,33 @@ function newGame() {
 
   resetGameData();
 
+
   state.activeRoles = {
 
-    werewolf: true,
-    doctor: true,
-    seer: true,
-    witch: true,
-    hunter: true,
-    villager: false
+    werewolf:
+      true,
+
+    doctor:
+      true,
+
+    seer:
+      true,
+
+    witch:
+      true,
+
+    hunter:
+      true,
+
+    villager:
+      false
 
   };
 
+
   state.distributionMode =
     "random";
+
 
   renderPlayerList();
 
@@ -4543,13 +5924,16 @@ function newGame() {
 
   updateRoleSummary();
 
+
   setDistributionMode(
     "random"
   );
 
+
   showScreen(
     "playersScreen"
   );
+
 }
 
 
@@ -4560,12 +5944,15 @@ function newGame() {
 function showRules() {
 
   showModal(
+
     "طريقة اللعب",
 
     "أولًا أضف اللاعبين والصور. بعدها اختر الأدوار التي تريدها واختر بين التوزيع العشوائي أو اليدوي. في التوزيع العشوائي يمكن أن تتكرر الأدوار، والقروي ليس مضمونًا. في التوزيع اليدوي تختار دور كل لاعب بنفسك. بعد بدء اللعبة سيكشف كل لاعب دوره بشكل سري، ثم تبدأ أدوار الليل والنقاش والتصويت حتى يفوز أحد الفريقين.",
 
     "📖"
+
   );
+
 }
 
 
@@ -4576,12 +5963,15 @@ function showRules() {
 function showSettings() {
 
   showModal(
+
     "الإعدادات",
 
     "واجهة اللعبة تستخدم تنبيهات داخلية بدل نوافذ المتصفح، والتصميم مخصص للهاتف والكمبيوتر. صور اللاعبين تبقى داخل جلسة اللعبة الحالية.",
 
     "⚙️"
+
   );
+
 }
 
 
@@ -4644,21 +6034,23 @@ function bindEvents() {
       event => {
 
         if (
-          event.key === "Enter"
+          event.key ===
+          "Enter"
         ) {
 
           event.preventDefault();
 
           addPlayer();
+
         }
 
       }
     );
 
 
-  /* =====================================================
-     DISTRIBUTION MODE BUTTONS
-     ===================================================== */
+  /*
+   * DISTRIBUTION
+   */
 
   $("randomRoleModeBtn")
     ?.addEventListener(
@@ -4686,9 +6078,9 @@ function bindEvents() {
     );
 
 
-  /* =====================================================
-     GAME HOME BUTTONS
-     ===================================================== */
+  /*
+   * HOME BUTTONS
+   */
 
   $("gameHomeBtn")
     ?.addEventListener(
@@ -4729,13 +6121,18 @@ function bindEvents() {
     );
 
 
+  /*
+   * TO ROLES
+   */
+
   $("toRolesBtn")
     ?.addEventListener(
       "click",
       () => {
 
         if (
-          state.players.length < 3
+          state.players.length <
+          3
         ) {
 
           showToast(
@@ -4744,15 +6141,12 @@ function bindEvents() {
           );
 
           return;
+
         }
 
-        /*
-         * لم نعد ننشئ أزرار توزيع جديدة هنا.
-         *
-         * الأزرار الأصلية موجودة داخل HTML.
-         */
 
         updateRoleSummary();
+
 
         showScreen(
           "rolesSetupScreen"
@@ -4761,6 +6155,10 @@ function bindEvents() {
       }
     );
 
+
+  /*
+   * BACK PLAYERS
+   */
 
   $("backPlayersBtn")
     ?.addEventListener(
@@ -4775,6 +6173,10 @@ function bindEvents() {
     );
 
 
+  /*
+   * ROLE OPTIONS
+   */
+
   $("roleOptions")
     ?.addEventListener(
       "click",
@@ -4787,6 +6189,7 @@ function bindEvents() {
 
         if (!button) return;
 
+
         toggleRole(
           button.dataset.role
         );
@@ -4794,6 +6197,10 @@ function bindEvents() {
       }
     );
 
+
+  /*
+   * REVIEW
+   */
 
   $("toReviewBtn")
     ?.addEventListener(
@@ -4815,12 +6222,20 @@ function bindEvents() {
     );
 
 
+  /*
+   * START
+   */
+
   $("startGameBtn")
     ?.addEventListener(
       "click",
       startGame
     );
 
+
+  /*
+   * ROLE
+   */
 
   $("revealRoleBtn")
     ?.addEventListener(
@@ -4836,12 +6251,20 @@ function bindEvents() {
     );
 
 
+  /*
+   * PASS
+   */
+
   $("continuePassBtn")
     ?.addEventListener(
       "click",
       continuePass
     );
 
+
+  /*
+   * ACTION
+   */
 
   $("confirmActionBtn")
     ?.addEventListener(
@@ -4856,7 +6279,9 @@ function bindEvents() {
           handleHunterConfirm();
 
           return;
+
         }
+
 
         confirmAction();
 
@@ -4877,7 +6302,9 @@ function bindEvents() {
           handleHunterSkip();
 
           return;
+
         }
+
 
         skipAction();
 
@@ -4885,12 +6312,20 @@ function bindEvents() {
     );
 
 
+  /*
+   * DISCUSSION
+   */
+
   $("startDiscussionBtn")
     ?.addEventListener(
       "click",
       startDiscussion
     );
 
+
+  /*
+   * VOTING
+   */
 
   $("startVotingBtn")
     ?.addEventListener(
@@ -4906,12 +6341,20 @@ function bindEvents() {
     );
 
 
+  /*
+   * NEXT AFTER VOTE
+   */
+
   $("continueAfterVoteBtn")
     ?.addEventListener(
       "click",
       continueAfterVote
     );
 
+
+  /*
+   * NEW GAME
+   */
 
   $("newGameBtn")
     ?.addEventListener(
@@ -4921,28 +6364,24 @@ function bindEvents() {
 
 
   /*
-   * X = إغلاق فقط
-   *
-   * OK = تأكيد وتنفيذ callback
+   * MODAL
    */
 
   $("closeModalBtn")
     ?.addEventListener(
       "click",
-      () => closeModal(false)
+      () =>
+        closeModal(false)
     );
 
 
   $("modalOkBtn")
     ?.addEventListener(
       "click",
-      () => closeModal(true)
+      () =>
+        closeModal(true)
     );
 
-
-  /*
-   * الضغط خارج المودال يغلقه فقط
-   */
 
   $("modal")
     ?.addEventListener(
@@ -4955,6 +6394,7 @@ function bindEvents() {
         ) {
 
           closeModal(false);
+
         }
 
       }
@@ -4962,7 +6402,7 @@ function bindEvents() {
 
 
   /*
-   * منع Escape من تنفيذ callback
+   * ESCAPE
    */
 
   document.addEventListener(
@@ -4970,13 +6410,16 @@ function bindEvents() {
     event => {
 
       if (
-        event.key === "Escape" &&
-        !$("modal")?.classList.contains(
-          "hidden"
-        )
+        event.key ===
+        "Escape" &&
+        !$("modal")
+          ?.classList.contains(
+            "hidden"
+          )
       ) {
 
         closeModal(false);
+
       }
 
     }
@@ -4984,7 +6427,7 @@ function bindEvents() {
 
 
   /*
-   * رفع الصور
+   * AVATAR
    */
 
   $("avatarInput")
@@ -4992,6 +6435,7 @@ function bindEvents() {
       "change",
       handleAvatarUpload
     );
+
 }
 
 
@@ -5002,19 +6446,14 @@ function bindEvents() {
 function initGame() {
 
   /*
-   * مهم جدًا:
-   *
-   * لا يوجد هنا:
-   *
-   * createGameControls()
-   * createDistributionControls()
-   *
-   * لأن هذه العناصر موجودة أصلًا في HTML.
-   *
-   * حذفنا إنشاءها من JavaScript حتى لا تتكرر.
+   * تهيئة الصوت القصير
    */
 
+  audioSystem.init();
+
+
   bindEvents();
+
 
   renderPlayerList();
 
@@ -5022,9 +6461,21 @@ function initGame() {
 
   updateRoleSummary();
 
+
   setDistributionMode(
     "random"
   );
+
+
+  /*
+   * تجهيز عناصر الصوت
+   */
+
+  getBgMusic();
+  getDiscussionMusic();
+  getVillageWinMusic();
+  getMercenariesWinMusic();
+
 
   setTimeout(
     () => {
@@ -5034,8 +6485,9 @@ function initGame() {
       );
 
     },
-    1000
+    100
   );
+
 }
 
 
@@ -5058,349 +6510,3 @@ if (
   initGame();
 
 }
-// =====================================================
-// 🔊 نظام أصوات اللعبة
-// =====================================================
-
-const audioSystem = {
-
-    // ===============================
-    // 🎵 إعدادات الأصوات
-    // ===============================
-
-    audioConfig: {
-
-        // موسيقى اللعبة
-        bgMusicPath: "./2.mp3",
-
-        // صوت الأزرار
-        clickSoundPath: "./1.mp3",
-
-        // صوت التصويت
-        votingSoundPath: "./3.mp3",
-
-        // مستوى الموسيقى
-        bgVolume: 0.25,
-
-        // مستوى صوت الأزرار
-        clickVolume: 0.6,
-
-        // مستوى صوت التصويت
-        votingVolume: 0.7
-    },
-
-
-    // ===============================
-    // 🎧 مشغلات الصوت
-    // ===============================
-
-    bgAudioInstance: null,
-
-    votingAudioInstance: null,
-
-    isUserMuted: false,
-
-
-    // ===============================
-    // 🔊 التهيئة
-    // ===============================
-
-    init() {
-
-        this.setupBackgroundMusic();
-        this.setupVotingSound();
-        this.setupButtonSounds();
-
-    },
-
-
-    // ===============================
-    // 🎵 موسيقى اللعبة
-    // ===============================
-
-    setupBackgroundMusic() {
-
-        this.bgAudioInstance =
-            new Audio(this.audioConfig.bgMusicPath);
-
-        this.bgAudioInstance.loop = true;
-
-        this.bgAudioInstance.volume =
-            this.audioConfig.bgVolume;
-
-        this.bgAudioInstance.preload = "auto";
-
-
-        // المتصفح يمنع الموسيقى التلقائية أحيانًا
-        const startMusic = () => {
-
-            if (!this.bgAudioInstance) return;
-
-            if (this.isUserMuted) return;
-
-            this.bgAudioInstance
-                .play()
-                .then(() => {
-
-                    document.removeEventListener(
-                        "click",
-                        startMusic
-                    );
-
-                    document.removeEventListener(
-                        "touchstart",
-                        startMusic
-                    );
-
-                    document.removeEventListener(
-                        "keydown",
-                        startMusic
-                    );
-
-                })
-                .catch(() => {});
-
-        };
-
-
-        // محاولة التشغيل
-        startMusic();
-
-
-        // تشغيل بعد أول تفاعل
-        document.addEventListener(
-            "click",
-            startMusic
-        );
-
-        document.addEventListener(
-            "touchstart",
-            startMusic
-        );
-
-        document.addEventListener(
-            "keydown",
-            startMusic
-        );
-
-    },
-
-
-    // ===============================
-    // 🗳️ تجهيز صوت التصويت
-    // ===============================
-
-    setupVotingSound() {
-
-        this.votingAudioInstance =
-            new Audio(this.audioConfig.votingSoundPath);
-
-        this.votingAudioInstance.volume =
-            this.audioConfig.votingVolume;
-
-        this.votingAudioInstance.preload = "auto";
-
-    },
-
-
-    // ===============================
-    // 🔘 أصوات الأزرار
-    // ===============================
-
-    setupButtonSounds() {
-
-        document.addEventListener("click", (e) => {
-
-            const button =
-                e.target.closest("button");
-
-            if (!button) return;
-
-            this.playButtonSound();
-
-        });
-
-    },
-
-
-    // ===============================
-    // 🔘 تشغيل صوت الزر
-    // ===============================
-
-    playButtonSound() {
-
-        if (this.isUserMuted) return;
-
-        try {
-
-            const clickAudio =
-                new Audio(
-                    this.audioConfig.clickSoundPath
-                );
-
-            clickAudio.volume =
-                this.audioConfig.clickVolume;
-
-            clickAudio.currentTime = 0;
-
-            clickAudio.play().catch(() => {});
-
-        } catch (error) {
-
-            console.log(
-                "خطأ صوت الزر:",
-                error
-            );
-
-        }
-
-    },
-
-
-    // ===============================
-    // 🗳️ تشغيل صوت التصويت
-    // ===============================
-
-    playVotingSound() {
-
-        if (this.isUserMuted) return;
-
-        if (!this.votingAudioInstance) return;
-
-
-        this.votingAudioInstance.currentTime = 0;
-
-        this.votingAudioInstance
-            .play()
-            .catch((error) => {
-
-                console.log(
-                    "خطأ صوت التصويت:",
-                    error
-                );
-
-            });
-
-    },
-
-
-    // ===============================
-    // ▶️ تشغيل موسيقى اللعبة
-    // ===============================
-
-    startBackgroundMusic() {
-
-        if (!this.bgAudioInstance) return;
-
-        if (this.isUserMuted) return;
-
-
-        this.bgAudioInstance
-            .play()
-            .catch(() => {});
-
-    },
-
-
-    // ===============================
-    // ⏸️ إيقاف موسيقى اللعبة
-    // ===============================
-
-    stopBackgroundMusic() {
-
-        if (!this.bgAudioInstance) return;
-
-        this.bgAudioInstance.pause();
-
-        this.bgAudioInstance.currentTime = 0;
-
-    },
-
-
-    // ===============================
-    // 🔇 كتم / تشغيل الأصوات
-    // ===============================
-
-    toggleMute() {
-
-        this.isUserMuted =
-            !this.isUserMuted;
-
-
-        if (this.isUserMuted) {
-
-            // إيقاف الموسيقى
-            if (this.bgAudioInstance) {
-
-                this.bgAudioInstance.pause();
-
-            }
-
-
-            // إيقاف صوت التصويت
-            if (this.votingAudioInstance) {
-
-                this.votingAudioInstance.pause();
-
-            }
-
-
-        } else {
-
-            // إعادة تشغيل الموسيقى
-            this.startBackgroundMusic();
-
-        }
-
-    },
-
-
-    // ===============================
-    // 🔊 تغيير صوت الموسيقى
-    // ===============================
-
-    setMusicVolume(volume) {
-
-        if (!this.bgAudioInstance) return;
-
-        this.bgAudioInstance.volume = volume;
-
-    },
-
-
-    // ===============================
-    // 🔊 تغيير صوت الأزرار
-    // ===============================
-
-    setClickVolume(volume) {
-
-        this.audioConfig.clickVolume = volume;
-
-    },
-
-
-    // ===============================
-    // 🔊 تغيير صوت التصويت
-    // ===============================
-
-    setVotingVolume(volume) {
-
-        this.audioConfig.votingVolume = volume;
-
-        if (this.votingAudioInstance) {
-
-            this.votingAudioInstance.volume =
-                volume;
-
-        }
-
-    }
-
-};
-
-
-// =====================================================
-// 🚀 تشغيل نظام الأصوات
-// =====================================================
-
-audioSystem.init();
