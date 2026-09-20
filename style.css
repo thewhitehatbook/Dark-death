@@ -3681,3 +3681,572 @@ button:active {
 .role-help-btn:active {
   transform: scale(0.9);
 }
+/* =========================================================
+   ROLE CARDS — NEW HORIZONTAL GRID DESIGN
+   ========================================================= */
+
+.role-options {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 14px;
+}
+
+
+/* =========================
+   ROLE CARD
+   ========================= */
+
+.role-option {
+  position: relative;
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+
+  gap: 0;
+  padding: 10px;
+
+  text-align: center;
+  color: #fff;
+
+  border-radius: 22px;
+
+  background:
+    linear-gradient(
+      145deg,
+      rgba(255,255,255,.055),
+      rgba(255,255,255,.018)
+    );
+
+  border: 1px solid rgba(255,255,255,.07);
+
+  box-shadow:
+    0 10px 25px rgba(0,0,0,.25),
+    inset 0 1px 0 rgba(255,255,255,.025);
+
+  overflow: hidden;
+
+  cursor: pointer;
+
+  transition:
+    transform .22s ease,
+    border-color .22s ease,
+    box-shadow .22s ease,
+    background .22s ease;
+}
+
+
+/* =========================
+   HOVER
+   ========================= */
+
+.role-option:hover {
+  transform: translateY(-3px);
+
+  border-color: rgba(255,55,55,.38);
+
+  background:
+    linear-gradient(
+      145deg,
+      rgba(255,255,255,.075),
+      rgba(120,0,0,.08)
+    );
+
+  box-shadow:
+    0 14px 30px rgba(0,0,0,.35),
+    0 0 18px rgba(170,0,0,.12);
+}
+
+
+/* =========================
+   ACTIVE
+   ========================= */
+
+.role-option.active {
+  border-color: rgba(220,25,25,.75);
+
+  background:
+    linear-gradient(
+      145deg,
+      rgba(120,0,0,.28),
+      rgba(35,5,5,.7)
+    );
+
+  box-shadow:
+    0 14px 30px rgba(0,0,0,.35),
+    0 0 22px rgba(210,0,0,.16),
+    inset 0 0 25px rgba(160,0,0,.07);
+}
+
+
+.role-option.active:hover {
+  border-color: rgba(255,45,45,.95);
+
+  box-shadow:
+    0 16px 32px rgba(0,0,0,.4),
+    0 0 28px rgba(220,0,0,.24);
+}
+
+
+/* علامة الاختيار */
+
+.role-option.active::after {
+  content: "✓";
+
+  position: absolute;
+
+  top: 8px;
+  right: 8px;
+
+  width: 25px;
+  height: 25px;
+
+  display: grid;
+  place-items: center;
+
+  border-radius: 50%;
+
+  background: #a90000;
+  color: #fff;
+
+  font-size: 13px;
+  font-weight: 900;
+
+  box-shadow:
+    0 4px 12px rgba(0,0,0,.4),
+    0 0 12px rgba(220,0,0,.3);
+
+  z-index: 10;
+}
+
+
+/* =========================
+   LOCKED
+   ========================= */
+
+.role-option.locked {
+  cursor: default;
+}
+
+.role-option.locked:hover {
+  transform: none;
+}
+
+
+/* =========================
+   GLOW
+   ========================= */
+
+.role-option-glow {
+  position: absolute;
+
+  inset: -50px;
+
+  background:
+    radial-gradient(
+      circle,
+      rgba(220,0,0,.18),
+      transparent 60%
+    );
+
+  opacity: 0;
+
+  pointer-events: none;
+
+  transition: opacity .3s ease;
+}
+
+
+.role-option.active .role-option-glow {
+  opacity: 1;
+}
+
+
+/* =========================================================
+   CHARACTER IMAGE BOX
+   ========================================================= */
+
+.role-option-icon {
+  position: relative;
+  z-index: 2;
+
+  width: 100%;
+  height: 145px;
+
+  min-height: 145px;
+
+  margin: 0 0 10px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  overflow: hidden;
+
+  border-radius: 17px;
+
+  background:
+    linear-gradient(
+      145deg,
+      rgba(255,255,255,.06),
+      rgba(255,255,255,.015)
+    );
+
+  border: 1px solid rgba(255,255,255,.07);
+
+  font-size: 55px;
+
+  transition:
+    border-color .25s ease,
+    box-shadow .25s ease,
+    transform .25s ease;
+}
+
+
+/* الصورة التي تضيفها لاحقًا */
+
+.role-option-icon img {
+  width: 100%;
+  height: 100%;
+
+  display: block;
+
+  object-fit: cover;
+
+  border-radius: inherit;
+}
+
+
+/* إذا تريد الصورة كاملة بدون قص */
+
+.role-option-icon img.contain {
+  object-fit: contain;
+}
+
+
+/* Active image */
+
+.role-option.active .role-option-icon {
+  border-color: rgba(220,30,30,.45);
+
+  box-shadow:
+    0 0 18px rgba(190,0,0,.12);
+}
+
+
+.role-option:hover .role-option-icon {
+  transform: scale(1.015);
+}
+
+
+/* =========================================================
+   ROLE NAME
+   ========================================================= */
+
+.role-option-info {
+  position: relative;
+  z-index: 2;
+
+  width: 100%;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+  gap: 4px;
+
+  padding: 0 3px;
+}
+
+
+.role-option-info strong {
+  display: block;
+
+  width: 100%;
+
+  color: #fff;
+
+  font-size: 15px;
+  font-weight: 900;
+
+  line-height: 1.35;
+
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+
+.role-option-info small {
+  display: block;
+
+  width: 100%;
+
+  min-height: 16px;
+
+  color: rgba(255,255,255,.48);
+
+  font-size: 10px;
+  line-height: 1.4;
+
+  overflow: hidden;
+}
+
+
+/* =========================================================
+   ROLE STATUS
+   ========================================================= */
+
+.role-power {
+  position: absolute;
+
+  left: 9px;
+  top: 9px;
+
+  z-index: 8;
+
+  display: flex;
+  align-items: center;
+
+  gap: 5px;
+
+  padding: 5px 7px;
+
+  border-radius: 9px;
+
+  background: rgba(0,0,0,.72);
+
+  border: 1px solid rgba(255,255,255,.08);
+
+  color: rgba(255,255,255,.7);
+
+  font-size: 9px;
+  font-weight: 800;
+
+  backdrop-filter: blur(8px);
+}
+
+
+.role-power .power-light {
+  width: 6px;
+  height: 6px;
+
+  flex-shrink: 0;
+
+  border-radius: 50%;
+
+  background: #777;
+
+  box-shadow: 0 0 7px rgba(255,255,255,.2);
+}
+
+
+.role-option.active .role-power {
+  color: #ffb5b5;
+
+  border-color: rgba(220,30,30,.22);
+}
+
+
+.role-option.active .role-power .power-light {
+  background: #e52b2b;
+
+  box-shadow:
+    0 0 8px rgba(255,30,30,.75);
+}
+
+
+/* =========================================================
+   ROLE TEAM TITLE
+   ========================================================= */
+
+.role-team-title {
+  display: flex;
+  align-items: center;
+
+  gap: 8px;
+
+  margin: 18px 2px 10px;
+
+  color: #f3dfe2;
+
+  font-size: 14px;
+  font-weight: 900;
+}
+
+
+.role-team-title::before {
+  content: "";
+
+  width: 4px;
+  height: 18px;
+
+  flex-shrink: 0;
+
+  border-radius: 10px;
+
+  background: #b50000;
+
+  box-shadow:
+    0 0 10px rgba(200,0,0,.35);
+}
+
+
+/* =========================================================
+   MOBILE
+   ========================================================= */
+
+@media (max-width: 800px) {
+
+  .role-options {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 11px;
+  }
+
+  .role-option {
+    padding: 8px;
+
+    border-radius: 19px;
+  }
+
+  .role-option-icon {
+    height: 125px;
+    min-height: 125px;
+
+    margin-bottom: 8px;
+
+    border-radius: 14px;
+
+    font-size: 46px;
+  }
+
+  .role-option-info strong {
+    font-size: 14px;
+  }
+
+  .role-option-info small {
+    font-size: 9px;
+  }
+
+  .role-power {
+    left: 7px;
+    top: 7px;
+
+    padding: 4px 6px;
+
+    font-size: 8px;
+  }
+
+  .role-option.active::after {
+    top: 7px;
+    right: 7px;
+
+    width: 22px;
+    height: 22px;
+
+    font-size: 11px;
+  }
+}
+
+
+/* =========================================================
+   SMALL PHONES
+   ========================================================= */
+
+@media (max-width: 430px) {
+
+  .role-options {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 9px;
+  }
+
+  .role-option {
+    padding: 7px;
+
+    border-radius: 17px;
+  }
+
+  .role-option-icon {
+    height: 105px;
+    min-height: 105px;
+
+    margin-bottom: 7px;
+
+    border-radius: 13px;
+
+    font-size: 39px;
+  }
+
+  .role-option-info strong {
+    font-size: 13px;
+  }
+
+  .role-option-info small {
+    display: none;
+  }
+
+  .role-power {
+    padding: 3px 5px;
+
+    font-size: 7px;
+  }
+
+  .role-power .power-light {
+    width: 5px;
+    height: 5px;
+  }
+
+  .role-option.active::after {
+    width: 20px;
+    height: 20px;
+
+    font-size: 10px;
+  }
+}
+
+
+/* =========================================================
+   VERY SMALL SCREENS
+   ========================================================= */
+
+@media (max-width: 340px) {
+
+  .role-options {
+    gap: 7px;
+  }
+
+  .role-option-icon {
+    height: 92px;
+    min-height: 92px;
+  }
+
+  .role-option-info strong {
+    font-size: 12px;
+  }
+
+}
+/* =========================================================
+   ROLE CARD SIZE — FINAL CONTROL
+   ========================================================= */
+
+.role-options {
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  gap: 14px !important;
+}
+
+.role-option {
+  min-height: 150px !important;
+  height: 150px !important;
+  padding: 5px !important;
+}
+
+.role-option-icon {
+  height: 100px !important;
+  min-height: 100px !important;
+}

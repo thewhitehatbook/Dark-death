@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
+
 <head>
   <meta charset="UTF-8">
 
@@ -22,7 +23,6 @@
   ====================================================== -->
 
   <section id="loadingScreen" class="screen active">
-
 
     <h1>المرتزقة</h1>
 
@@ -56,7 +56,6 @@
           class="main-btn primary"
           id="startBtn"
         >
-         
           <span>لعبة جديدة</span>
         </button>
 
@@ -65,7 +64,6 @@
           class="main-btn"
           id="rulesBtn"
         >
-         
           <span>طريقة اللعب</span>
         </button>
 
@@ -74,7 +72,6 @@
           class="main-btn"
           id="settingsBtn"
         >
-          
           <span>الإعدادات</span>
         </button>
 
@@ -192,8 +189,6 @@
         </div>
 
 
-
-
         <div
           id="playerList"
           class="player-list"
@@ -209,7 +204,7 @@
             </span>
 
             <small>
-             المطلوب 3 — 50
+              المطلوب 3 — 50
             </small>
 
           </div>
@@ -232,9 +227,7 @@
           متابعة إلى الأدوار
         </span>
 
-        <span>
-          
-        </span>
+        <span></span>
 
       </button>
 
@@ -382,7 +375,7 @@
             </span>
 
             <span>
-            قائد لعبة
+              قائد لعبة
             </span>
 
           </button>
@@ -427,18 +420,22 @@
       </div>
 
 
-      <!-- RANDOM / NORMAL ROLE OPTIONS -->
+      <!-- =====================================================
+           ROLE OPTIONS
+      ====================================================== -->
 
       <div
         id="roleOptions"
         class="role-options"
       >
 
+
         <!-- WEREWOLF -->
 
         <button
           class="role-option locked active"
           data-role="werewolf"
+          type="button"
         >
 
           <div class="role-option-glow"></div>
@@ -453,9 +450,7 @@
               قاتل
             </strong>
 
-            <small>
-             
-            </small>
+            <small></small>
 
           </div>
 
@@ -471,48 +466,50 @@
 
         </button>
 
-<!-- SAMURAI -->
 
-<button
-  class="role-option"
-  data-role="samurai"
-  type="button"
->
+        <!-- SAMURAI -->
 
-  <div class="role-option-glow"></div>
+        <button
+          class="role-option"
+          data-role="samurai"
+          type="button"
+        >
 
-  <div class="role-option-icon">
-    ⚔️
-  </div>
+          <div class="role-option-glow"></div>
 
-  <div class="role-option-info">
+          <div class="role-option-icon">
+            ⚔️
+          </div>
 
-    <strong>
-      الساموراي
-    </strong>
+          <div class="role-option-info">
 
-    <small>
-      
-    </small>
+            <strong>
+              الساموراي
+            </strong>
 
-  </div>
+            <small></small>
 
-  <div class="role-power">
+          </div>
 
-    <span>
-      متاح
-    </span>
+          <div class="role-power">
 
-    <i class="power-light"></i>
+            <span>
+              متاح
+            </span>
 
-  </div>
+            <i class="power-light"></i>
 
-</button>
+          </div>
+
+        </button>
+
+
         <!-- DOCTOR -->
 
         <button
           class="role-option active"
           data-role="doctor"
+          type="button"
         >
 
           <div class="role-option-glow"></div>
@@ -527,9 +524,7 @@
               الطبيب
             </strong>
 
-            <small>
-             
-            </small>
+            <small></small>
 
           </div>
 
@@ -551,6 +546,7 @@
         <button
           class="role-option active"
           data-role="seer"
+          type="button"
         >
 
           <div class="role-option-glow"></div>
@@ -565,9 +561,7 @@
               العرّاف
             </strong>
 
-            <small>
-            
-            </small>
+            <small></small>
 
           </div>
 
@@ -589,6 +583,7 @@
         <button
           class="role-option active"
           data-role="witch"
+          type="button"
         >
 
           <div class="role-option-glow"></div>
@@ -603,9 +598,7 @@
               الساحر
             </strong>
 
-            <small>
-            
-            </small>
+            <small></small>
 
           </div>
 
@@ -627,6 +620,7 @@
         <button
           class="role-option active"
           data-role="hunter"
+          type="button"
         >
 
           <div class="role-option-glow"></div>
@@ -641,9 +635,7 @@
               الصياد
             </strong>
 
-            <small>
-              
-            </small>
+            <small></small>
 
           </div>
 
@@ -658,120 +650,125 @@
           </div>
 
         </button>
-<!-- PHOENIX -->
 
-<button
-  class="role-option"
-  data-role="phoenix"
-  type="button"
->
 
-  <div class="role-option-glow"></div>
+        <!-- PHOENIX -->
 
-  <div class="role-option-icon">
-    🔥
-  </div>
+        <button
+          class="role-option"
+          data-role="phoenix"
+          type="button"
+        >
 
-  <div class="role-option-info">
+          <div class="role-option-glow"></div>
 
-    <strong>
-      العنقاء
-    </strong>
+          <div class="role-option-icon">
+            🔥
+          </div>
 
-    <small>
-      
-    </small>
+          <div class="role-option-info">
 
-  </div>
+            <strong>
+              العنقاء
+            </strong>
 
-  <div class="role-power">
+            <small></small>
 
-    <span>
-      متاح
-    </span>
+          </div>
 
-    <i class="power-light"></i>
+          <div class="role-power">
 
-  </div>
+            <span>
+              متاح
+            </span>
 
-</button>
-<!-- PHILOSOPHER -->
+            <i class="power-light"></i>
 
-<button
-  class="role-option"
-  data-role="philosopher"
-  type="button"
->
+          </div>
 
-  <div class="role-option-glow"></div>
+        </button>
 
-  <div class="role-option-icon">
-    🧠
-  </div>
 
-  <div class="role-option-info">
+        <!-- PHILOSOPHER -->
 
-    <strong>
-      الفيلسوف
-    </strong>
+        <button
+          class="role-option"
+          data-role="philosopher"
+          type="button"
+        >
 
-    <small>
-      
-    </small>
+          <div class="role-option-glow"></div>
 
-  </div>
+          <div class="role-option-icon">
+            🧠
+          </div>
 
-  <div class="role-power">
+          <div class="role-option-info">
 
-    <span>
-      متاح
-    </span>
+            <strong>
+              الفيلسوف
+            </strong>
 
-    <i class="power-light"></i>
+            <small></small>
 
-  </div>
-</button>
-<!-- trapper -->
-<button
-  class="role-option"
-  data-role="trapper"
-  type="button"
->
+          </div>
 
-  <div class="role-option-glow"></div>
+          <div class="role-power">
 
-  <div class="role-option-icon">
-    🕶️
-  </div>
+            <span>
+              متاح
+            </span>
 
-  <div class="role-option-info">
+            <i class="power-light"></i>
 
-    <strong>
-      ناصب الفخاخ
-    </strong>
+          </div>
 
-    <small>
+        </button>
 
-    </small>
 
-  </div>
+        <!-- TRAPPER -->
 
-  <div class="role-power">
+        <button
+          class="role-option"
+          data-role="trapper"
+          type="button"
+        >
 
-    <span>
-      متاح
-    </span>
+          <div class="role-option-glow"></div>
 
-    <i class="power-light"></i>
+          <div class="role-option-icon">
+            🕶️
+          </div>
 
-  </div>
+          <div class="role-option-info">
 
-</button>
+            <strong>
+              ناصب الفخاخ
+            </strong>
+
+            <small></small>
+
+          </div>
+
+          <div class="role-power">
+
+            <span>
+              متاح
+            </span>
+
+            <i class="power-light"></i>
+
+          </div>
+
+        </button>
+
+
         <!-- VILLAGER -->
 
         <button
           class="role-option active"
           data-role="villager"
+          type="button"
         >
 
           <div class="role-option-glow"></div>
@@ -786,9 +783,7 @@
               القروي
             </strong>
 
-            <small>
-             
-            </small>
+            <small></small>
 
           </div>
 
@@ -807,7 +802,9 @@
       </div>
 
 
-      <!-- MANUAL COUNTS -->
+      <!-- =====================================================
+           MANUAL COUNTS
+      ====================================================== -->
 
       <div
         id="manualRolePanel"
@@ -837,6 +834,9 @@
 
         <div class="manual-role-list">
 
+
+          <!-- WEREWOLF -->
+
           <div
             class="manual-role-row"
             data-manual-role="werewolf"
@@ -857,6 +857,7 @@
               <button
                 class="manual-minus"
                 data-role="werewolf"
+                type="button"
               >
                 −
               </button>
@@ -870,6 +871,7 @@
               <button
                 class="manual-plus"
                 data-role="werewolf"
+                type="button"
               >
                 +
               </button>
@@ -877,46 +879,55 @@
             </div>
 
           </div>
-<div
-  class="manual-role-row"
-  data-manual-role="samurai"
->
 
-  <div class="manual-role-name">
 
-    <span>⚔️</span>
+          <!-- SAMURAI -->
 
-    <strong>
-      الساموراي
-    </strong>
+          <div
+            class="manual-role-row"
+            data-manual-role="samurai"
+          >
 
-  </div>
+            <div class="manual-role-name">
 
-  <div class="manual-counter">
+              <span>⚔️</span>
 
-    <button
-      class="manual-minus"
-      data-role="samurai"
-    >
-      −
-    </button>
+              <strong>
+                الساموراي
+              </strong>
 
-    <strong
-      id="manualCountSamurai"
-    >
-      0
-    </strong>
+            </div>
 
-    <button
-      class="manual-plus"
-      data-role="samurai"
-    >
-      +
-    </button>
+            <div class="manual-counter">
 
-  </div>
+              <button
+                class="manual-minus"
+                data-role="samurai"
+                type="button"
+              >
+                −
+              </button>
 
-</div>
+              <strong
+                id="manualCountSamurai"
+              >
+                0
+              </strong>
+
+              <button
+                class="manual-plus"
+                data-role="samurai"
+                type="button"
+              >
+                +
+              </button>
+
+            </div>
+
+          </div>
+
+
+          <!-- DOCTOR -->
 
           <div
             class="manual-role-row"
@@ -938,6 +949,7 @@
               <button
                 class="manual-minus"
                 data-role="doctor"
+                type="button"
               >
                 −
               </button>
@@ -951,6 +963,7 @@
               <button
                 class="manual-plus"
                 data-role="doctor"
+                type="button"
               >
                 +
               </button>
@@ -959,6 +972,8 @@
 
           </div>
 
+
+          <!-- SEER -->
 
           <div
             class="manual-role-row"
@@ -980,6 +995,7 @@
               <button
                 class="manual-minus"
                 data-role="seer"
+                type="button"
               >
                 −
               </button>
@@ -993,6 +1009,7 @@
               <button
                 class="manual-plus"
                 data-role="seer"
+                type="button"
               >
                 +
               </button>
@@ -1001,6 +1018,8 @@
 
           </div>
 
+
+          <!-- WITCH -->
 
           <div
             class="manual-role-row"
@@ -1022,6 +1041,7 @@
               <button
                 class="manual-minus"
                 data-role="witch"
+                type="button"
               >
                 −
               </button>
@@ -1035,6 +1055,7 @@
               <button
                 class="manual-plus"
                 data-role="witch"
+                type="button"
               >
                 +
               </button>
@@ -1043,6 +1064,8 @@
 
           </div>
 
+
+          <!-- HUNTER -->
 
           <div
             class="manual-role-row"
@@ -1064,6 +1087,7 @@
               <button
                 class="manual-minus"
                 data-role="hunter"
+                type="button"
               >
                 −
               </button>
@@ -1077,6 +1101,7 @@
               <button
                 class="manual-plus"
                 data-role="hunter"
+                type="button"
               >
                 +
               </button>
@@ -1085,6 +1110,8 @@
 
           </div>
 
+
+          <!-- VILLAGER -->
 
           <div
             class="manual-role-row"
@@ -1106,6 +1133,7 @@
               <button
                 class="manual-minus"
                 data-role="villager"
+                type="button"
               >
                 −
               </button>
@@ -1119,6 +1147,7 @@
               <button
                 class="manual-plus"
                 data-role="villager"
+                type="button"
               >
                 +
               </button>
@@ -1148,6 +1177,8 @@
 
       </div>
 
+
+      <!-- ROLE SUMMARY -->
 
       <div class="role-summary-card">
 
@@ -1179,9 +1210,7 @@
           مراجعة التوزيع
         </span>
 
-        <span>
-          
-        </span>
+        <span></span>
 
       </button>
 
@@ -1342,9 +1371,7 @@
           🔥 توزيع الأدوار وبدء اللعبة
         </span>
 
-        <span>
-          
-        </span>
+        <span></span>
 
       </button>
 
@@ -1493,12 +1520,10 @@
           >
 
             <span>
-             استخدم قدرتك
+              استخدم قدرتك
             </span>
 
-            <span>
-              
-            </span>
+            <span></span>
 
           </button>
 
@@ -1597,9 +1622,7 @@
             تأكيد
           </span>
 
-          <span>
-            
-          </span>
+          <span></span>
 
         </button>
 
@@ -1664,9 +1687,7 @@
           أنا جاهز
         </span>
 
-        <span>
-          
-        </span>
+        <span></span>
 
       </button>
 
@@ -1711,9 +1732,7 @@
           ابدأ النقاش
         </span>
 
-        <span>
-          
-        </span>
+        <span></span>
 
       </button>
 
@@ -1840,9 +1859,7 @@
           تأكيد التصويت
         </span>
 
-        <span>
-          
-        </span>
+        <span></span>
 
       </button>
 
@@ -1887,9 +1904,7 @@
           متابعة
         </span>
 
-        <span>
-          
-        </span>
+        <span></span>
 
       </button>
 
@@ -1940,9 +1955,7 @@
           لعبة جديدة
         </span>
 
-        <span>
-          
-        </span>
+        <span></span>
 
       </button>
 
@@ -1965,6 +1978,7 @@
       <button
         id="closeModalBtn"
         class="modal-close"
+        type="button"
       >
         ×
       </button>
@@ -1989,6 +2003,7 @@
       <button
         id="modalOkBtn"
         class="big-action-btn red-action"
+        type="button"
       >
         حسنًا
       </button>
@@ -2016,40 +2031,48 @@
     hidden
   >
 
-<!-- =====================================================
-     GAME MUSIC
-====================================================== -->
 
-<audio
-  id="bgMusic"
-  src="./2.mp3"
-  loop
-  preload="auto"
-></audio>
+  <!-- =====================================================
+       GAME MUSIC
+  ====================================================== -->
 
-<audio
-  id="discussionMusic"
-  src="./6.mp3"
-  loop
-  preload="auto"
-></audio>
+  <audio
+    id="bgMusic"
+    src="./2.mp3"
+    loop
+    preload="auto"
+  ></audio>
 
-<audio
-  id="villageWinMusic"
-  src="./4.mp3"
-  preload="auto"
-></audio>
 
-<audio
-  id="mercenariesWinMusic"
-  src="./5.mp3"
-  preload="auto"
-></audio>
-<audio
-  id="phoenixReviveSound"
-  src="./7.mp3"
-  preload="auto"
-></audio>
+  <audio
+    id="discussionMusic"
+    src="./6.mp3"
+    loop
+    preload="auto"
+  ></audio>
+
+
+  <audio
+    id="villageWinMusic"
+    src="./4.mp3"
+    preload="auto"
+  ></audio>
+
+
+  <audio
+    id="mercenariesWinMusic"
+    src="./5.mp3"
+    preload="auto"
+  ></audio>
+
+
+  <audio
+    id="phoenixReviveSound"
+    src="./7.mp3"
+    preload="auto"
+  ></audio>
+
+
   <script src="script.js"></script>
 
 </body>
