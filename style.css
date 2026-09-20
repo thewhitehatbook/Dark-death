@@ -4738,3 +4738,58 @@ button:active {
   }
 
 }
+/* =========================================================
+   فرق المرتزقة والقرية
+   الصق هذا الكود في آخر ملف CSS.
+   ========================================================= */
+
+#roleOptions.team-role-groups {
+  display: grid;
+  gap: 24px;
+}
+
+.team-role-group {
+  padding: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 22px;
+  background: rgba(0, 0, 0, 0.18);
+}
+
+.team-role-group.mercenaries {
+  border-color: rgba(215, 38, 38, 0.34);
+  background: linear-gradient(135deg, rgba(122, 0, 0, 0.2), rgba(0, 0, 0, 0.18));
+}
+
+.team-role-group.village {
+  border-color: rgba(44, 148, 105, 0.34);
+  background: linear-gradient(135deg, rgba(12, 96, 67, 0.18), rgba(0, 0, 0, 0.18));
+}
+
+.team-role-group .role-team-title {
+  margin: 0 2px 14px;
+}
+
+.team-role-group.mercenaries .role-team-title {
+  color: #ffb8b8;
+}
+
+.team-role-group.village .role-team-title {
+  color: #bdeed3;
+}
+
+.team-role-group.village .role-team-title::before {
+  background: #1fa46d;
+  box-shadow: 0 0 10px rgba(31, 164, 109, 0.45);
+}
+
+.team-role-options {
+  width: 100%;
+}
+
+@media (max-width: 800px) {
+  .team-role-group {
+    padding: 11px;
+    border-radius: 18px;
+  }
+}
+

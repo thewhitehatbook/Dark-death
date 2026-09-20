@@ -1481,7 +1481,7 @@ function toggleRole(
   ) {
 
     showToast(
-      "المستذئب دور إجباري",
+      "القاتل دور إجباري",
       "error"
     );
 
@@ -1624,11 +1624,11 @@ function getSelectedSpecialRoles() {
 
 function getWolfCount(count) {
 
-  if (count >= 5 && count <= 7) {
+  if (count >= 6 && count <= 8) {
     return 2;
   }
 
-  if (count >= 8 && count <= 13) {
+  if (count >= 10 && count <= 13) {
     return 3;
   }
 
@@ -9013,3 +9013,667 @@ if (document.readyState === "loading") {
   installPhoenixVoteMessageWatcher();
   refreshPhoenixRoleText();
 }
+/* =========================================================
+   إضافة شخصية الصامت
+   الصق هذا الكود كاملًا في آخر ملف JavaScript الحالي.
+   ========================================================= */
+
+
+/* تعريف الدور. */
+ROLES.silent = {
+  name: "الصامت",
+  icon: "🤐",
+  team: "wolves",
+  teamName: "فريق المرتزقة",
+  description:
+    "مرتين في اللعبة، اختر لاعبًا ليسكت خلال النقاش التالي. تستطيع اختيار نفسك."
+};
+
+ROLE_WEIGHTS.silent = 25;
+
+
+/* يبقى الدور مفعّلًا حتى بعد بدء لعبة جديدة. */
+let silentActiveRoles = {
+  ...state.activeRoles,
+  silent: true
+};
+
+Object.defineProperty(state, "activeRoles", {
+  configurable: true,
+
+  get() {
+    return silentActiveRoles;
+  },
+
+  set(roles) {
+    silentActiveRoles = {
+      ...roles,
+      silent: true
+    };
+  }
+});
+
+
+/* الصامت يُحسب من فريق المرتزقة عند احتساب الفوز. */
+function getAliveWolves() {
+
+  return alivePlayers().filter(
+    player => getRole(player)?.team === "wolves"
+  );
+
+}
+
+
+function getAliveVillagers() {
+
+  return alivePlayers().filter(
+    player => getRole(player)?.team !== "wolves"
+  );
+
+}
+
+
+/* لا يستطيع القاتل اختيار عضو من فريقه كضحية. */
+function setupWolfAction(player) {
+
+  $("actionIcon").textContent = "🔪";
+  $("actionTitle").textContent = "اختر ضحية";
+  $("actionDescription").textContent =
+    "اختر لاعبًا لاستهدافه. لا يمكنك استهداف لاعب من فريقك.";
+
+  state.currentAction = "wolf";
+
+  const targets = alivePlayers().filter(
+    target => getRole(target)?.team !== "wolves"
+  );
+
+  renderTargets(targets, false);
+
+}
+
+
+function getSilentState(player) {
+
+  if (!state.silentStates) {
+    state.silentStates = {};
+  }
+
+  if (!state.silentStates[player.id]) {
+    state.silentStates[player.id] = {
+      uses: 0
+    };
+  }
+
+  return state.silentStates[player.id];
+
+}
+
+
+function setupSilentAction(player) {
+
+  const silent = getSilentState(player);
+
+  $("actionIcon").textContent = "🤐";
+  $("actionTitle").textContent = "اختر من تسكته";
+
+  $("actionDescription").textContent =
+    silent.uses >= 2
+      ? "استُخدمت قدرتك مرتين. يمكنك تخطي دورك."
+      : `اختر لاعبًا ليسكت في النقاش التالي. يمكنك اختيار نفسك. الاستخدامات المتبقية: ${2 - silent.uses}`;
+
+  state.currentAction = "silent";
+  state.selectedTarget = null;
+
+  $("confirmActionBtn")?.classList.add("hidden");
+  $("skipActionBtn")?.classList.add("hidden");
+
+  if (silent.uses >= 2) {
+
+    $("actionTargets").innerHTML = `
+      <div class="hint">
+        استُخدمت قدرة الصامت مرتين.
+      </div>
+    `;
+
+    $("skipActionBtn")?.classList.remove("hidden");
+
+    return;
+
+  }
+
+  /* جميع الأحياء متاحون، بما فيهم الصامت نفسه. */
+  renderTargets(alivePlayers(), true);
+
+}
+
+
+function selectSilentTarget(event) {
+
+  if (state.currentPlayer?.role !== "silent") {
+    return;
+  }
+
+  event.preventDefault();
+  event.stopImmediatePropagation();
+
+  const silent = state.currentPlayer;
+
+  showActionForPlayer(silent);
+  setupSilentAction(silent);
+
+}
+
+
+function confirmSilentTarget(event) {
+
+  if (state.currentAction !== "silent") {
+    return;
+  }
+
+  event.preventDefault();
+  event.stopImmediatePropagation();
+
+  if (state.actionLocked) {
+    return;
+  }
+
+  const silentPlayer = state.currentPlayer;
+  const silent = silentPlayer && getSilentState(silentPlayer);
+
+  if (!silentPlayer || !silentPlayer.alive || !silent) {
+    return;
+  }
+
+  if (silent.uses >= 2) {
+    showToast("استخدمت قدرة الصامت مرتين.", "error");
+    return;
+  }
+
+  const target = getPlayer(state.selectedTarget);
+
+  if (!target || !target.alive) {
+    showToast("اختر لاعبًا متاحًا أولًا.", "error");
+    return;
+  }
+
+  state.actionLocked = true;
+  $("confirmActionBtn")?.setAttribute("disabled", "disabled");
+
+  silent.uses += 1;
+
+  if (!state.silencedPlayers) {
+    state.silencedPlayers = [];
+  }
+
+  state.silencedPlayers.push({
+    playerId: target.id,
+    night: state.night
+  });
+
+  state.selectedTarget = null;
+  finishNightTurn();
+
+}
+
+
+function getSilencedPlayersForDiscussion() {
+
+  const ids = [
+    ...new Set(
+      (state.silencedPlayers || [])
+        .filter(entry => entry.night === state.night)
+        .map(entry => entry.playerId)
+    )
+  ];
+
+  return ids
+    .map(id => getPlayer(id))
+    .filter(player => player?.alive);
+
+}
+
+
+/* رسالة عامة في النقاش، لأن اللعبة لا تملك محادثة صوتية داخلية لمنع الكلام فعليًا. */
+function startDiscussionWithSilence(event) {
+
+  event.preventDefault();
+  event.stopImmediatePropagation();
+
+  clearInterval(state.discussionInterval);
+  state.discussionInterval = null;
+  state.discussionSeconds = 120;
+
+  updateTimer();
+  showScreen("discussionScreen");
+
+  const beginTimer = () => {
+
+    state.discussionInterval = setInterval(() => {
+
+      state.discussionSeconds--;
+      updateTimer();
+
+      if (state.discussionSeconds <= 0) {
+
+        clearInterval(state.discussionInterval);
+        state.discussionInterval = null;
+
+        showToast("انتهى وقت النقاش", "error");
+        startVoting();
+
+      }
+
+    }, 1000);
+
+  };
+
+  const silencedPlayers = getSilencedPlayersForDiscussion();
+
+  if (silencedPlayers.length === 0) {
+    beginTimer();
+    return;
+  }
+
+  const names = silencedPlayers
+    .map(player => escapeHTML(player.name))
+    .join("، ");
+
+  showModal(
+    "🤐 قرار الصامت",
+    `${names} ممنوع من الكلام حتى نهاية هذا النقاش.`,
+    "🤐",
+    beginTimer,
+    true
+  );
+
+}
+
+
+function addSilentRoleToSetup() {
+
+  const options = $("roleOptions");
+
+  if (!options || options.querySelector('[data-role="silent"]')) {
+    return;
+  }
+
+  options.insertAdjacentHTML("beforeend", `
+    <button class="role-option active" data-role="silent" type="button">
+      <div class="role-option-glow"></div>
+      <div class="role-option-icon">🤐</div>
+      <div class="role-option-info">
+        <strong>الصامت</strong>
+        <small></small>
+      </div>
+      <div class="role-power">
+        <span>متاح</span>
+        <i class="power-light"></i>
+      </div>
+    </button>
+  `);
+
+  renderRoleOptions();
+
+}
+
+
+function installSilentRole() {
+
+  addSilentRoleToSetup();
+
+  $("continueRoleBtn")?.addEventListener(
+    "click",
+    selectSilentTarget,
+    true
+  );
+
+  $("confirmActionBtn")?.addEventListener(
+    "click",
+    confirmSilentTarget,
+    true
+  );
+
+  $("startDiscussionBtn")?.addEventListener(
+    "click",
+    startDiscussionWithSilence,
+    true
+  );
+
+  $("startGameBtn")?.addEventListener(
+    "click",
+    () => {
+      state.silentStates = {};
+      state.silencedPlayers = [];
+    },
+    true
+  );
+
+}
+
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", installSilentRole);
+} else {
+  installSilentRole();
+}
+/* =========================================================
+   فرق المرتزقة والقرية + موازنة التوزيع
+   الصق هذا الكود كاملًا في آخر ملف JavaScript،
+   بعد كود الصامت.
+   ========================================================= */
+
+
+/*
+ * عدد أعضاء فريق المرتزقة:
+ * 3-5 لاعبين: قاتل واحد.
+ * 6+ لاعبين: العدد المعتاد للقتلة، لكن أحدهم يتحول إلى صامت.
+ * مثال: 6-7 = قاتل + صامت، و8-13 = قاتلان + صامت.
+ */
+function getMercenarySlotCount(count) {
+
+  if (count < 6) {
+    return 1;
+  }
+
+  return getWolfCount(count);
+
+}
+
+
+/* الفريقان منفصلان في شروط الفوز. */
+function getAliveWolves() {
+
+  return alivePlayers().filter(
+    player => getRole(player)?.team === "wolves"
+  );
+
+}
+
+
+function getAliveVillagers() {
+
+  return alivePlayers().filter(
+    player => getRole(player)?.team === "village"
+  );
+
+}
+
+
+/* لا تبدأ اللعبة إذا كانت الخيارات لا تحتوي على الفريقين. */
+function validateRoleSetup() {
+
+  const playerCount = state.players.length;
+
+  if (playerCount < 3) {
+    showToast("أضف 3 لاعبين على الأقل أولًا", "error");
+    return false;
+  }
+
+  if (playerCount > 50) {
+    showToast("الحد الأقصى هو 50 لاعبًا", "error");
+    return false;
+  }
+
+  const selectedRoles = getSelectedRoles();
+
+  const hasMercenaries = selectedRoles.some(
+    role => ROLES[role]?.team === "wolves"
+  );
+
+  const hasVillage = selectedRoles.some(
+    role => ROLES[role]?.team === "village"
+  );
+
+  if (!hasMercenaries || !hasVillage) {
+    showToast(
+      "يجب تفعيل دور واحد على الأقل من فريق المرتزقة ودور واحد من فريق القرية.",
+      "error"
+    );
+    return false;
+  }
+
+  return true;
+
+}
+
+
+/* التوزيع العشوائي المتوازن. */
+function buildRandomRoles() {
+
+  const count = state.players.length;
+  const selectedRoles = getSelectedRoles();
+  const mercenarySlots = Math.min(getMercenarySlotCount(count), count - 1);
+  const silentCount = count >= 6 ? 1 : 0;
+  const killerCount = mercenarySlots - silentCount;
+  const roles = [];
+
+  for (let index = 0; index < killerCount; index++) {
+    roles.push("werewolf");
+  }
+
+  if (silentCount === 1) {
+    roles.push("silent");
+  }
+
+  const villageRoles = selectedRoles.filter(
+    role => ROLES[role]?.team === "village"
+  );
+
+  while (roles.length < count) {
+
+    let totalWeight = 0;
+
+    villageRoles.forEach(role => {
+      totalWeight += ROLE_WEIGHTS[role] ?? 1;
+    });
+
+    let random = Math.random() * totalWeight;
+    let selectedRole = villageRoles[villageRoles.length - 1];
+
+    for (const role of villageRoles) {
+
+      random -= ROLE_WEIGHTS[role] ?? 1;
+
+      if (random <= 0) {
+        selectedRole = role;
+        break;
+      }
+
+    }
+
+    roles.push(selectedRole);
+
+  }
+
+  return shuffle(roles);
+
+}
+
+
+/* في التوزيع اليدوي نضمن وجود الفريقين ونفس الموازنة. */
+function buildManualRoles() {
+
+  const roles = [];
+
+  for (const player of state.players) {
+
+    const role = state.manualRoles[player.id];
+
+    if (!role) {
+      showToast(`اختر دور اللاعب ${player.name}`, "error");
+      return null;
+    }
+
+    if (!state.activeRoles[role]) {
+      showToast(`الدور المختار للاعب ${player.name} متوقف`, "error");
+      return null;
+    }
+
+    roles.push(role);
+
+  }
+
+  const hasMercenaries = roles.some(
+    role => ROLES[role]?.team === "wolves"
+  );
+
+  const hasVillage = roles.some(
+    role => ROLES[role]?.team === "village"
+  );
+
+  if (!hasMercenaries || !hasVillage) {
+    showToast("يجب أن تحتوي اللعبة على فريق مرتزقة وفريق قرية.", "error");
+    return null;
+  }
+
+  const expectedMercenaries = getMercenarySlotCount(state.players.length);
+  const expectedSilent = state.players.length >= 6 ? 1 : 0;
+  const expectedKillers = expectedMercenaries - expectedSilent;
+  const killerCount = roles.filter(role => role === "werewolf").length;
+  const silentCount = roles.filter(role => role === "silent").length;
+
+  if (killerCount !== expectedKillers || silentCount !== expectedSilent) {
+    showToast(
+      state.players.length >= 6
+        ? `لهذا العدد يجب اختيار ${expectedKillers} قاتل و1 صامت.`
+        : "لهذا العدد يجب اختيار قاتل واحد ولا يوجد صامت.",
+      "error"
+    );
+    return null;
+  }
+
+  return roles;
+
+}
+
+
+/* القاتل يرى القاتل الآخر والصامت كأصدقاء ولا يستطيع استهدافهم. */
+function setupWolfAction(player) {
+
+  $("actionIcon").textContent = "🔪";
+  $("actionTitle").textContent = "اختر ضحية";
+  $("actionDescription").textContent =
+    "الأشخاص المعلمون بـ«صديقك» هم من فريق المرتزقة ولا يمكن استهدافهم.";
+
+  state.currentAction = "wolf";
+
+  renderTargets(
+    alivePlayers().filter(target => target.id !== player.id),
+    false
+  );
+
+  state.players
+    .filter(target =>
+      target.alive &&
+      target.id !== player.id &&
+      getRole(target)?.team === "wolves"
+    )
+    .forEach(friend => {
+
+      const button = document.querySelector(
+        `#actionTargets [data-target-id="${friend.id}"]`
+      );
+
+      if (!button) {
+        return;
+      }
+
+      button.disabled = true;
+      button.classList.add("wolf-friend");
+
+      const marker = button.lastElementChild;
+
+      if (marker) {
+        marker.className = "wolf-friend-warning";
+        marker.textContent = "صديقك";
+      }
+
+    });
+
+}
+
+
+/* يمنع إيقاف الصامت من 6 لاعبين وفوق لأنه جزء من الموازنة الإلزامية. */
+function keepSilentRoleRequired(event) {
+
+  const button = event.target.closest('[data-role="silent"]');
+
+  if (!button || state.players.length < 6) {
+    return;
+  }
+
+  event.preventDefault();
+  event.stopImmediatePropagation();
+
+  state.activeRoles.silent = true;
+  renderRoleOptions();
+  showToast("الصامت إجباري من 6 لاعبين وفوق للموازنة.", "error");
+
+}
+
+
+/* يفصل بطاقات الإعداد إلى مجموعتين مرئيتين. */
+function separateRoleTeams() {
+
+  const options = $("roleOptions");
+
+  if (!options || options.classList.contains("team-role-groups")) {
+    return;
+  }
+
+  const cards = [
+    ...options.querySelectorAll(":scope > .role-option")
+  ];
+
+  const mercenaryCards = cards.filter(
+    card => ROLES[card.dataset.role]?.team === "wolves"
+  );
+
+  const villageCards = cards.filter(
+    card => ROLES[card.dataset.role]?.team === "village"
+  );
+
+  options.classList.remove("role-options");
+  options.classList.add("team-role-groups");
+  options.innerHTML = `
+    <section class="team-role-group mercenaries">
+      <h3 class="role-team-title">🔪 فريق المرتزقة</h3>
+      <div id="mercenaryRoleOptions" class="role-options team-role-options"></div>
+    </section>
+    <section class="team-role-group village">
+      <h3 class="role-team-title">🏘️ فريق القرية</h3>
+      <div id="villageRoleOptions" class="role-options team-role-options"></div>
+    </section>
+  `;
+
+  const mercenaryList = $("mercenaryRoleOptions");
+  const villageList = $("villageRoleOptions");
+
+  mercenaryCards.forEach(card => mercenaryList.appendChild(card));
+  villageCards.forEach(card => villageList.appendChild(card));
+
+  renderRoleOptions();
+
+}
+
+
+function installMercenaryTeamUpdate() {
+
+  separateRoleTeams();
+
+  $("roleOptions")?.addEventListener(
+    "click",
+    keepSilentRoleRequired,
+    true
+  );
+
+}
+
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", installMercenaryTeamUpdate);
+} else {
+  installMercenaryTeamUpdate();
+}
+
+
