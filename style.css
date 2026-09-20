@@ -4236,7 +4236,7 @@ button:active {
    ========================================================= */
 
 .role-options {
-  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
   gap: 14px !important;
 }
 
@@ -4249,4 +4249,492 @@ button:active {
 .role-option-icon {
   height: 100px !important;
   min-height: 100px !important;
+}
+/* =========================================================
+   PLAYERS — CIRCLES / 3 PLAYERS PER ROW
+   ========================================================= */
+
+#playerList {
+  width: 100% !important;
+  display: grid !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  gap: 22px 14px !important;
+  margin-top: 22px !important;
+  padding: 10px 4px !important;
+}
+
+/* اللاعب */
+#playerList .player-item {
+  width: 100% !important;
+  min-width: 0 !important;
+  min-height: 120px !important;
+
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+
+  gap: 9px !important;
+  padding: 0 !important;
+
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+}
+
+/* دائرة اللاعب */
+#playerList .player-avatar,
+#playerList .avatar,
+#playerList .player-circle {
+  width: 78px !important;
+  height: 78px !important;
+  min-width: 78px !important;
+  min-height: 78px !important;
+
+  border-radius: 50% !important;
+
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+
+  background:
+    radial-gradient(
+      circle at 35% 30%,
+      #3a0b0b 0%,
+      #170303 55%,
+      #080202 100%
+    ) !important;
+
+  border: 2px solid #8d1d1d !important;
+  box-shadow:
+    0 0 0 4px rgba(130, 20, 20, 0.10),
+    0 6px 18px rgba(0, 0, 0, 0.45) !important;
+
+  color: #fff !important;
+  font-size: 25px !important;
+  font-weight: 800 !important;
+
+  overflow: hidden !important;
+}
+
+/* اسم اللاعب */
+#playerList .player-name {
+  width: 100% !important;
+
+  margin: 0 !important;
+  padding: 0 3px !important;
+
+  text-align: center !important;
+
+  color: #fff !important;
+  font-size: 14px !important;
+  font-weight: 700 !important;
+
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+/* زر حذف اللاعب إذا موجود */
+#playerList .remove-player,
+#playerList .delete-player,
+#playerList .remove-btn {
+  position: absolute !important;
+
+  width: 24px !important;
+  height: 24px !important;
+
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+
+  border-radius: 50% !important;
+
+  background: #8d1d1d !important;
+  border: 2px solid #120303 !important;
+
+  color: #fff !important;
+  font-size: 13px !important;
+  font-weight: 900 !important;
+
+  cursor: pointer !important;
+}
+
+/* =========================================================
+   ADD PLAYER AREA
+   ========================================================= */
+
+.player-input-row {
+  width: 100% !important;
+
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+
+  gap: 10px !important;
+
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+/* حقل الاسم */
+#playerNameInput {
+  flex: 1 !important;
+  min-width: 0 !important;
+}
+
+/* زر + */
+#addPlayerBtn {
+  width: 48px !important;
+  height: 48px !important;
+  min-width: 48px !important;
+
+  padding: 0 !important;
+
+  border-radius: 50% !important;
+
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+
+  font-size: 27px !important;
+  font-weight: 900 !important;
+}
+
+/* =========================================================
+   MOBILE
+   ========================================================= */
+
+@media (max-width: 430px) {
+
+  #playerList {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 18px 8px !important;
+  }
+
+  #playerList .player-avatar,
+  #playerList .avatar,
+  #playerList .player-circle {
+    width: 66px !important;
+    height: 66px !important;
+    min-width: 66px !important;
+    min-height: 66px !important;
+
+    font-size: 21px !important;
+  }
+
+  #playerList .player-name {
+    font-size: 12px !important;
+  }
+}
+
+@media (max-width: 340px) {
+
+  #playerList {
+    gap: 15px 5px !important;
+  }
+
+  #playerList .player-avatar,
+  #playerList .avatar,
+  #playerList .player-circle {
+    width: 58px !important;
+    height: 58px !important;
+    min-width: 58px !important;
+    min-height: 58px !important;
+  }
+
+  #playerList .player-name {
+    font-size: 11px !important;
+  }
+}
+/* =========================================================
+   PLAYER LIST — 3 PLAYERS PER ROW
+   ========================================================= */
+
+#playerList {
+  width: 100% !important;
+
+  display: grid !important;
+
+  grid-template-columns:
+    repeat(3, minmax(0, 1fr)) !important;
+
+  gap: 25px 10px !important;
+
+  align-items: start !important;
+}
+
+
+/* =========================================================
+   PLAYER ITEM
+   ========================================================= */
+
+#playerList .player-item {
+
+  position: relative !important;
+
+  width: 100% !important;
+  min-width: 0 !important;
+
+  height: 125px !important;
+
+  display: flex !important;
+
+  align-items: center !important;
+  justify-content: flex-start !important;
+
+  flex-direction: column !important;
+
+  padding: 0 !important;
+  margin: 0 !important;
+
+  background: transparent !important;
+
+  border: none !important;
+
+  box-shadow: none !important;
+}
+
+
+/* =========================================================
+   PLAYER MAIN
+   ========================================================= */
+
+#playerList .player-main {
+
+  width: 100% !important;
+  height: auto !important;
+
+  display: flex !important;
+
+  flex-direction: column !important;
+
+  align-items: center !important;
+  justify-content: flex-start !important;
+
+  gap: 8px !important;
+
+  padding: 0 !important;
+  margin: 0 !important;
+
+  flex-shrink: 0 !important;
+}
+
+
+/* =========================================================
+   PLAYER CIRCLE
+   ========================================================= */
+
+#playerList .player-avatar {
+
+  position: relative !important;
+
+  flex: 0 0 78px !important;
+
+  width: 78px !important;
+  height: 78px !important;
+
+  min-width: 78px !important;
+  max-width: 78px !important;
+
+  min-height: 78px !important;
+  max-height: 78px !important;
+
+  margin: 0 auto !important;
+  padding: 0 !important;
+
+  border-radius: 50% !important;
+
+  display: flex !important;
+
+  align-items: center !important;
+  justify-content: center !important;
+
+  overflow: hidden !important;
+
+  box-sizing: border-box !important;
+}
+
+
+/* صورة اللاعب */
+#playerList .player-avatar img {
+
+  width: 100% !important;
+  height: 100% !important;
+
+  object-fit: cover !important;
+
+  border-radius: 50% !important;
+}
+
+
+/* =========================================================
+   NAME BOX
+   ========================================================= */
+
+#playerList .player-name-box {
+
+  width: 100% !important;
+  max-width: 100% !important;
+
+  min-width: 0 !important;
+
+  display: flex !important;
+
+  flex-direction: column !important;
+
+  align-items: center !important;
+  justify-content: center !important;
+
+  text-align: center !important;
+
+  margin: 0 !important;
+  padding: 0 !important;
+
+  overflow: hidden !important;
+}
+
+
+/* =========================================================
+   PLAYER NAME
+   ========================================================= */
+
+#playerList .player-name {
+
+  display: block !important;
+
+  width: 100% !important;
+
+  min-width: 0 !important;
+
+  height: 20px !important;
+
+  margin: 0 !important;
+  padding: 0 3px !important;
+
+  text-align: center !important;
+
+  white-space: nowrap !important;
+
+  overflow: hidden !important;
+
+  text-overflow: ellipsis !important;
+
+  line-height: 20px !important;
+
+  box-sizing: border-box !important;
+}
+
+
+/* رقم اللاعب */
+#playerList .player-number {
+
+  display: inline-block !important;
+
+  margin-left: 3px !important;
+}
+
+
+/* =========================================================
+   DELETE BUTTON
+   ========================================================= */
+
+#playerList .remove-player {
+
+  position: absolute !important;
+
+  top: -4px !important;
+  right: 8px !important;
+
+  width: 24px !important;
+  height: 24px !important;
+
+  padding: 0 !important;
+
+  border-radius: 50% !important;
+
+  display: flex !important;
+
+  align-items: center !important;
+  justify-content: center !important;
+
+  z-index: 10 !important;
+}
+
+
+/* =========================================================
+   MOBILE
+   ========================================================= */
+
+@media (max-width: 430px) {
+
+  #playerList {
+
+    grid-template-columns:
+      repeat(3, minmax(0, 1fr)) !important;
+
+    gap: 20px 5px !important;
+
+  }
+
+
+  #playerList .player-item {
+
+    height: 108px !important;
+
+  }
+
+
+  #playerList .player-avatar {
+
+    flex-basis: 65px !important;
+
+    width: 65px !important;
+    height: 65px !important;
+
+    min-width: 65px !important;
+    max-width: 65px !important;
+
+    min-height: 65px !important;
+    max-height: 65px !important;
+
+  }
+
+
+  #playerList .player-name {
+
+    font-size: 12px !important;
+
+  }
+
+}
+
+
+/* =========================================================
+   VERY SMALL SCREENS
+   ========================================================= */
+
+@media (max-width: 340px) {
+
+  #playerList .player-avatar {
+
+    flex-basis: 58px !important;
+
+    width: 58px !important;
+    height: 58px !important;
+
+    min-width: 58px !important;
+    max-width: 58px !important;
+
+    min-height: 58px !important;
+    max-height: 58px !important;
+
+  }
+
 }
