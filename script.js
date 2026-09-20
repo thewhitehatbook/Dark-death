@@ -9675,5 +9675,165 @@ if (document.readyState === "loading") {
 } else {
   installMercenaryTeamUpdate();
 }
+/* =========================================================
+   نظام ندرة الشخصيات
+   الصق هذا الكود كاملًا في آخر ملف JavaScript.
+   ========================================================= */
+
+
+/*
+ * الألوان والندرات المتاحة:
+ * شائع = أخضر | نادر = أزرق | استثنائي = بنفسجي
+ * خرافي = أحمر | أسطوري = أصفر
+ */
+const RARITY_CONFIG = {
+  "شائع": {
+    color: "#32d583",
+    icon: "●"
+  },
+  "نادر": {
+    color: "#3b9cff",
+    icon: "◆"
+  },
+  "استثنائي": {
+    color: "#a855f7",
+    icon: "✦"
+  },
+  "خرافي": {
+    color: "#ef4444",
+    icon: "✹"
+  },
+  "أسطوري": {
+    color: "#f6d447",
+    icon: "★"
+  }
+};
+
+
+/*
+ * غيّر كلمة الندرة أمام أي دور كما تريد.
+ * الكلمات المسموحة: شائع، نادر، استثنائي، خرافي، أسطوري
+ */
+const ROLE_RARITIES = {
+  werewolf: "أسطوري",
+  silent: "خرافي",
+  samurai: "خرافي",
+  doctor: "نادر",
+  seer: "استثنائي",
+  witch: "استثنائي",
+  hunter: "نادر",
+  phoenix: "أسطوري",
+  philosopher: "نادر",
+  trapper: "استثنائي",
+  villager: "شائع"
+};
+
+
+function getRoleRarity(roleId) {
+
+  const rarityName = ROLE_RARITIES[roleId] || "شائع";
+
+  return {
+    name: rarityName,
+    ...RARITY_CONFIG[rarityName]
+  };
+
+}
+
+
+function applyRoleRarities() {
+
+  Object.entries(ROLE_RARITIES).forEach(([roleId, rarityName]) => {
+
+    if (ROLES[roleId]) {
+      ROLES[roleId].rarity = rarityName;
+    }
+
+  });
+
+  document.querySelectorAll(".role-option").forEach(card => {
+
+    const rarity = getRoleRarity(card.dataset.role);
+
+    if (!rarity.color) {
+      return;
+    }
+
+    card.classList.add("has-rarity");
+    card.style.setProperty("--rarity-color", rarity.color);
+
+    const text = card.querySelector(".role-option-info small");
+
+    if (text) {
+      const label = `${rarity.icon} ${rarity.name}`;
+
+      if (text.textContent !== label) {
+        text.textContent = label;
+      }
+    }
+
+  });
+
+}
+
+
+function showCurrentRoleRarity() {
+
+  const player = state.currentPlayer;
+
+  if (!player || !player.role) {
+    return;
+  }
+
+  const rarity = getRoleRarity(player.role);
+
+  if (!rarity.color) {
+    return;
+  }
+
+  let badge = $("roleRarityBadge");
+
+  if (!badge) {
+
+    badge = document.createElement("div");
+    badge.id = "roleRarityBadge";
+    badge.className = "role-rarity-badge";
+
+    $("roleDescription")?.insertAdjacentElement("afterend", badge);
+
+  }
+
+  badge.style.setProperty("--rarity-color", rarity.color);
+  badge.textContent = `${rarity.icon} الندرة: ${rarity.name}`;
+
+}
+
+
+function installRoleRarities() {
+
+  applyRoleRarities();
+
+  $("revealRoleBtn")?.addEventListener(
+    "click",
+    showCurrentRoleRarity
+  );
+
+  const options = $("roleOptions");
+
+  if (options) {
+    new MutationObserver(applyRoleRarities).observe(
+      options,
+      { childList: true, subtree: true }
+    );
+  }
+
+}
+
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", installRoleRarities);
+} else {
+  installRoleRarities();
+}
 
 

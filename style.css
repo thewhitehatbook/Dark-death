@@ -4793,3 +4793,39 @@ button:active {
   }
 }
 
+/* =========================================================
+   نظام ندرة الشخصيات
+   الصق هذا الكود في آخر ملف CSS.
+   ========================================================= */
+
+.role-option.has-rarity {
+  border-color: color-mix(in srgb, var(--rarity-color) 58%, transparent) !important;
+}
+
+.role-option.has-rarity .role-option-icon {
+  border-color: color-mix(in srgb, var(--rarity-color) 52%, transparent);
+  box-shadow: 0 0 20px color-mix(in srgb, var(--rarity-color) 20%, transparent);
+}
+
+.role-option.has-rarity .role-option-info small {
+  color: var(--rarity-color) !important;
+  font-weight: 900;
+  text-shadow: 0 0 10px color-mix(in srgb, var(--rarity-color) 42%, transparent);
+}
+
+.role-rarity-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin: 10px auto 0;
+  padding: 6px 12px;
+  border: 1px solid color-mix(in srgb, var(--rarity-color) 58%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--rarity-color) 12%, rgba(0, 0, 0, 0.45));
+  color: var(--rarity-color);
+  font-size: 13px;
+  font-weight: 900;
+  box-shadow: 0 0 16px color-mix(in srgb, var(--rarity-color) 20%, transparent);
+}
+
