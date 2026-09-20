@@ -8662,3 +8662,354 @@ if (playerNameInput) {
 
   });
 }
+/* =========================================================
+   تحديث العنقاء
+   الصق هذا الكود كاملًا في آخر ملف JavaScript الحالي.
+   ========================================================= */
+
+ROLES.phoenix.description =
+  "إذا مت، تبقى خارج اللعبة حتى صباح اليوم التالي، ثم تعود مرة واحدة فقط. بعد عودتك تعيش ليلة واحدة، ثم تخرج من اللعبة نهائيًا.";
+
+
+function getPhoenixState(player) {
+
+  if (!state.phoenixStates[player.id]) {
+
+    state.phoenixStates[player.id] = {
+      used: false,
+      pending: false,
+      reviveAtMorning: null,
+      returned: false,
+      expiresAfterNight: null
+    };
+
+  }
+
+  return state.phoenixStates[player.id];
+
+}
+
+
+/* الموت الأول: تبقى العنقاء ميتة حتى صباح اليوم التالي. */
+function handlePhoenixDeath(player) {
+
+  if (!player || player.role !== "phoenix") {
+    return false;
+  }
+
+  const phoenix = getPhoenixState(player);
+
+  if (!phoenix.used) {
+
+    phoenix.used = true;
+    phoenix.pending = true;
+    phoenix.reviveAtMorning = state.night + 1;
+    phoenix.returned = false;
+    phoenix.expiresAfterNight = null;
+
+    player.alive = false;
+
+    return true;
+
+  }
+
+  /* إذا ماتت بعد استخدام قدرتها، يكون موتها نهائيًا. */
+  phoenix.pending = false;
+  phoenix.reviveAtMorning = null;
+  phoenix.expiresAfterNight = null;
+  player.alive = false;
+
+  return false;
+
+}
+
+
+/* الإحياء يحصل مع نتيجة الليل، أي في صباح اليوم التالي فقط. */
+function revivePendingPhoenixes() {
+
+  const revived = [];
+
+  state.players.forEach(player => {
+
+    if (player.role !== "phoenix") {
+      return;
+    }
+
+    const phoenix = getPhoenixState(player);
+
+    if (
+      !phoenix.pending ||
+      phoenix.reviveAtMorning == null ||
+      state.night < phoenix.reviveAtMorning
+    ) {
+      return;
+    }
+
+    player.alive = true;
+    phoenix.pending = false;
+    phoenix.reviveAtMorning = null;
+    phoenix.returned = true;
+
+    /* تعيش النهار الحالي، ثم ليلة واحدة فقط. */
+    phoenix.expiresAfterNight = state.night + 1;
+
+    const sound = getPhoenixReviveSound();
+
+    if (!audioSystem.isUserMuted && sound) {
+      sound.currentTime = 0;
+      sound.volume = 0.8;
+      sound.play().catch(() => {});
+    }
+
+    revived.push(player);
+
+  });
+
+  return revived;
+
+}
+
+
+/* تنتهي حياة العنقاء في صباح الليلة الوحيدة التي مُنحت لها. */
+function expirePhoenixesAfterOneNight() {
+
+  const expired = [];
+
+  state.players.forEach(player => {
+
+    if (player.role !== "phoenix") {
+      return;
+    }
+
+    const phoenix = getPhoenixState(player);
+
+    if (
+      phoenix.returned &&
+      phoenix.expiresAfterNight != null &&
+      state.night >= phoenix.expiresAfterNight &&
+      player.alive
+    ) {
+      player.alive = false;
+      phoenix.expiresAfterNight = null;
+      expired.push(player);
+    }
+
+  });
+
+  return expired;
+
+}
+
+
+function setupPhoenixAction(player) {
+
+  $("actionIcon").textContent = "🦅";
+  $("actionTitle").textContent = "العنقاء";
+  $("actionDescription").textContent =
+    "لا تملك حركة ليلية. إذا مت، ستعود في صباح اليوم التالي مرة واحدة فقط، وبعد عودتك تعيش ليلة واحدة.";
+
+  $("skipActionBtn")?.classList.remove("hidden");
+
+  state.currentAction = "phoenix-skip";
+
+}
+
+
+/* تعرض نتيجة الصباح ثم الإحياء أو نهاية الليلة الوحيدة للعنقاء. */
+function finishNightResult() {
+
+  const revivedPhoenixes = revivePendingPhoenixes();
+  const expiredPhoenixes = expirePhoenixesAfterOneNight();
+
+  const deaths = state.nightDeaths
+    .map(id => getPlayer(id))
+    .filter(player => player);
+
+  let html = "";
+
+  if (deaths.length === 0) {
+
+    html = `
+      🌙 مرت الليلة بسلام.
+      <br>
+      لم يمت أي لاعب.
+    `;
+
+  } else {
+
+    html = `
+      مات هذه الليلة:
+      <br><br>
+      ${
+        deaths
+          .map(player => `
+            <strong>
+              💀 ${escapeHTML(player.name)}
+            </strong>
+          `)
+          .join("<br>")
+      }
+    `;
+
+  }
+
+  if (revivedPhoenixes.length > 0) {
+
+    const names = revivedPhoenixes
+      .map(player => escapeHTML(player.name))
+      .join("، ");
+
+    html += `
+      <br><br>
+      🦅 <strong>عادت العنقاء مع بداية هذا الصباح:</strong>
+      <br>
+      ${names}
+      <br>
+      ستعيش ليلة واحدة فقط.
+    `;
+
+  }
+
+  if (expiredPhoenixes.length > 0) {
+
+    const names = expiredPhoenixes
+      .map(player => escapeHTML(player.name))
+      .join("، ");
+
+    html += `
+      <br><br>
+      🦅 <strong>انتهت الليلة الوحيدة للعنقاء:</strong>
+      <br>
+      ${names}
+      <br>
+      خرجت من اللعبة نهائيًا.
+    `;
+
+  }
+
+  if ($("nightResultText")) {
+    $("nightResultText").innerHTML = html;
+  }
+
+  showScreen("nightResultScreen");
+
+  if (checkWinner()) {
+    return;
+  }
+
+}
+
+
+/* لا نُحيي العنقاء بعد التصويت؛ نبدأ الليلة الجديدة وهي ما زالت ميتة. */
+function continueAfterVote() {
+
+  if (state.samuraiMode && state.samuraiQueue.length > 0) {
+    state.actionLocked = false;
+    startSamuraiDuel();
+    return;
+  }
+
+  if (state.hunterMode === "vote" && state.hunterQueue.length > 0) {
+    state.actionLocked = false;
+    startNextHunterTurn();
+    return;
+  }
+
+  if (checkWinner()) {
+    return;
+  }
+
+  state.hunterMode = null;
+  state.hunterQueue = [];
+  state.samuraiMode = false;
+  state.samuraiQueue = [];
+  state.voteLocked = false;
+  state.actionLocked = false;
+  state.votingResolved = false;
+
+  state.night++;
+  beginNight();
+
+}
+
+
+/* يصحح رسالة خروج العنقاء القديمة إن ظهرت بعد التصويت. */
+function refreshPhoenixVoteMessage() {
+
+  const result = $("voteResultText");
+
+  if (
+    !result ||
+    !result.textContent.includes("لقد استُخدمت قدرة العنقاء")
+  ) {
+    return;
+  }
+
+  const waitingPhoenixes = state.players.filter(player =>
+    player.role === "phoenix" &&
+    getPhoenixState(player).pending
+  );
+
+  if (waitingPhoenixes.length === 0) {
+    return;
+  }
+
+  result.innerHTML = `
+    🦅 خرجت العنقاء من اللعبة:
+    <br><br>
+    <strong>
+      ${waitingPhoenixes.map(player => escapeHTML(player.name)).join("، ")}
+    </strong>
+    <br><br>
+    ستبقى ميتة خلال الليلة القادمة، ثم تعود في صباح اليوم التالي.
+  `;
+
+}
+
+
+function installPhoenixVoteMessageWatcher() {
+
+  const result = $("voteResultText");
+
+  if (!result) {
+    return;
+  }
+
+  new MutationObserver(refreshPhoenixVoteMessage).observe(
+    result,
+    { childList: true, subtree: true }
+  );
+
+}
+
+
+function showRules() {
+
+  showModal(
+    "طريقة اللعب",
+    "أولًا أضف اللاعبين والصور. بعدها اختر الأدوار التي تريدها واختر بين التوزيع العشوائي أو اليدوي. في التوزيع العشوائي يمكن أن تتكرر الأدوار. العنقاء إذا ماتت تبقى ميتة خلال الليلة القادمة، ثم تعود في صباح اليوم التالي مرة واحدة فقط. بعد عودتها تعيش ليلة واحدة ثم تخرج نهائيًا. الفيلسوف يزور لاعبًا مرة أولى دون معرفة معلومات عنه، ثم يجب أن يعود إلى اللاعب نفسه في ليلة لاحقة ليعرف دوره وقدرته وما فعله في الزيارة السابقة. في التوزيع اليدوي تختار دور كل لاعب بنفسك. بعد بدء اللعبة سيكشف كل لاعب دوره بشكل سري، ثم تبدأ أدوار الليل والنقاش والتصويت حتى يفوز أحد الفريقين.",
+    "📖"
+  );
+
+}
+
+
+function refreshPhoenixRoleText() {
+
+  if (typeof renderRoleOptions === "function") {
+    renderRoleOptions();
+  }
+
+}
+
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", () => {
+    installPhoenixVoteMessageWatcher();
+    refreshPhoenixRoleText();
+  });
+
+} else {
+  installPhoenixVoteMessageWatcher();
+  refreshPhoenixRoleText();
+}
