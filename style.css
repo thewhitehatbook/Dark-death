@@ -4952,5 +4952,71 @@ button:active {
   border-color: #bdbdbd !important;
   box-shadow: 0 8px 18px rgba(0, 0, 0, 0.35) !important;
 }
+/*
+ * مظهر إضافة الشخصيات الجديدة
+ * أضف هذا الملف بعد styles.css.
+ */
+
+.role-option.addon-role {
+  min-height: 92px;
+}
+
+.role-option.addon-role .role-option-info strong {
+  font-size: 15px;
+}
+
+.addon-notices {
+  margin-top: 12px;
+  padding: 11px 13px;
+  border: 1px solid rgba(246, 212, 71, 0.38);
+  border-radius: 14px;
+  background: rgba(246, 212, 71, 0.08);
+  color: #ffe8a3;
+  font-size: 14px;
+  line-height: 1.8;
+}
+
+.farm-challenge {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  margin: 0 0 12px;
+  padding: 11px 13px;
+  box-sizing: border-box;
+  border: 1px solid rgba(91, 179, 88, 0.48);
+  border-radius: 13px;
+  background: rgba(44, 110, 49, 0.2);
+  color: #dff5c9;
+  font-weight: 800;
+}
+
+.farm-challenge input {
+  width: 84px;
+  padding: 8px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 9px;
+  outline: none;
+  background: rgba(0, 0, 0, 0.38);
+  color: #fff;
+  font: inherit;
+  text-align: center;
+}
+
+.farm-challenge input:focus {
+  border-color: #b9ec73;
+  box-shadow: 0 0 0 3px rgba(185, 236, 115, 0.16);
+}
+
+@media (max-width: 520px) {
+  .role-option.addon-role {
+    min-height: 78px;
+  }
+
+  .role-option.addon-role .role-option-info strong {
+    font-size: 13px;
+  }
+}
 
 

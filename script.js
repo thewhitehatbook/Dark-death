@@ -9716,7 +9716,7 @@ const RARITY_CONFIG = {
  * الكلمات المسموحة: شائع، نادر، استثنائي، خرافي، أسطوري
  */
 const ROLE_RARITIES = {
-  werewolf: "خرافي",
+  werewolf: "شائع",
   silent: "شائع",
   samurai: "خرافي",
   doctor: "نادر",
@@ -9926,5 +9926,1293 @@ if (document.readyState === "loading") {
 } else {
   installRoleRaritySort();
 }
+"use strict";
+
+/*
+ * إضافة شخصيات المافيا
+ * هذا الملف يُحمَّل بعد script.js الأصلي. لا يعدّل المحرك الأصلي مباشرةً،
+ * لكنه يضيف الأدوار والقدرات وقواعد الحماية والتصويت في طبقة واحدة.
+ */
+(function () {
+  const ADDON_KEY = "__mafiaNewRoles";
+
+  const ADDED_ROLES = {
+    gambler: { name: "المقامر", icon: "🎲", team: "wolves", type: "gambler", rarity: "استثنائي", weight: 12, description: "اختر لاعبًا؛ باحتمال 50% تموت أنت وباحتمال 50% يموت هو." },
+    assassin: { name: "السفاح", icon: "🗡️", team: "wolves", type: "assassin", rarity: "أسطوري", weight: 10, description: "مرة واحدة: اجعل هجوم فريق القتلة هذه الليلة يخترق جميع الحمايات." },
+    sorcerer: { name: "المشعوذ", icon: "🧪", team: "wolves", type: "sorcerer", rarity: "أسطوري", weight: 10, description: "اختر لاعبين لجرعة سرية. يختار كل واحد الشرب أو الرفض؛ الشارب يموت، وإذا رفضا معًا يموتان معًا." },
+    spy: { name: "الجاسوس", icon: "🕵️", team: "wolves", type: "spy", rarity: "نادر", weight: 8, description: "يعرف في كل ليلة أسماء وأدوار أهل القرية الأحياء." },
+    commander: { name: "قائد المرتزقة", icon: "🎖️", team: "wolves", type: "commander", rarity: "أسطوري", weight: 7, description: "لكل قدرة استخدام واحد: قتل، تعطيل قدرة، إسكات، أو تعريف دور لاعب." },
+    zombie: { name: "الزومبي", icon: "🧟", team: "wolves", type: "zombie", rarity: "استثنائي", weight: 10, description: "مرة واحدة اختر القتل أو تحويل مواطن إلى فريق الشر بلا قدرة." },
+    disguised: { name: "المتنكر", icon: "🎭", team: "wolves", type: "disguised", rarity: "نادر", weight: 10, description: "يظهر للعرّاف كدور مواطن عشوائي، وتظهر لك هويتك الوهمية عند كشف دورك." },
+    dark_witch: { name: "الساحرة", icon: "🧙‍♀️", team: "wolves", type: "dark_witch", rarity: "خرافي", weight: 10, description: "مرة واحدة حوّل لاعبًا من القرية إلى الشر بلا قدرة." },
+    jailer: { name: "السجّان", icon: "⛓️", team: "wolves", type: "jailer", rarity: "نادر", weight: 12, description: "مرة واحدة عطّل قدرة لاعب في الليلة التالية." },
+    forger: { name: "المزوّر", icon: "🎭", team: "wolves", type: "forger", rarity: "استثنائي", weight: 10, description: "انقل القناع الوحيد بين الناس؛ العرّاف يرى صاحب القناع قاتلًا." },
+    cursed: { name: "الملعون", icon: "☠️", team: "wolves", type: "cursed", rarity: "نادر", weight: 12, description: "إذا أُعدمت، تصبح أصوات من صوّتوا عليك صفرًا في التصويت التالي." },
+    raven: { name: "الغراب", icon: "🐦‍⬛", team: "wolves", type: "raven", rarity: "خرافي", weight: 8, description: "أعطِ مواطنًا هدية؛ نتيجتها 20% موت أو حماية أو تعطيل دائم أو سيف أو درع دائم." },
+    ghoul: { name: "الغول", icon: "👹", team: "wolves", type: "ghoul", rarity: "نادر", weight: 10, description: "بعد موتك اختر لاعبًا لتزيل عنه كل الحمايات." },
+    plague: { name: "الطاعون", icon: "🦠", team: "wolves", type: "plague", rarity: "خرافي", weight: 9, description: "انشر العدوى؛ في الليلة التالية يختار المصاب الموت أو نقل العدوى." },
+    twin: { name: "التوأم", icon: "👥", team: "wolves", type: "twin", rarity: "خرافي", weight: 8, description: "اربط نفسك بعضو من فريقك: كلاكما محمي، وإذا مات أحدكما يموت الآخر." },
+    resentful: { name: "الحاقد", icon: "😠", team: "wolves", type: "resentful", rarity: "استثنائي", weight: 12, description: "إن أعدمتك القرية، اختر لاعبًا تقتله قبل خروجك." },
+    roadblock: { name: "قاطع الطريق", icon: "🚧", team: "wolves", type: "roadblock", rarity: "نادر", weight: 12, description: "اختر لاعبًا؛ لا يملك حق التصويت في التصويت التالي." },
+    imp: { name: "العفريت", icon: "👺", team: "wolves", type: "imp", rarity: "استثنائي", weight: 10, description: "اختر لاعبًا؛ إذا مت تفقده حق التصويت دائمًا." },
+    thief: { name: "اللص", icon: "🥷", team: "wolves", type: "thief", rarity: "نادر", weight: 12, description: "مرة واحدة اسرق حماية لاعب أو علاج الطبيب لهذه الليلة." },
+    viking: { name: "الفايكنغ", icon: "🛡️", team: "wolves", type: "viking", rarity: "خرافي", weight: 9, description: "يجب أن تنجح القرية في التصويت عليك مرتين كي تخرج." },
+    ninja: { name: "النينجا", icon: "🥷", team: "wolves", type: "ninja", rarity: "خرافي", weight: 9, description: "لا يُعرف فريقك بالكشف. علّم لاعبًا مرتين في ليلتين لقتله." },
+    ghost: { name: "الشبح", icon: "👻", team: "wolves", type: "ghost", rarity: "استثنائي", weight: 9, description: "مرة واحدة سيطر على قدرة مواطن؛ تُعطّل قدرته في تلك الليلة." },
+    pirate: { name: "القرصان", icon: "🏴‍☠️", team: "wolves", type: "pirate", rarity: "نادر", weight: 11, description: "اختر لاعبًا؛ عند موتك يُسجن ولا يستعمل قدرته في الليلة التالية." },
+
+    swordsman: { name: "السياف", icon: "⚔️", team: "village", type: "swordsman", rarity: "استثنائي", weight: 9, description: "مرة واحدة اسحب السيف علنًا ثم اقتل لاعبًا ليلًا؛ الضربة تخترق كل الحمايات." },
+    merchant: { name: "التاجر", icon: "💰", team: "village", type: "merchant", rarity: "نادر", weight: 12, description: "مرة واحدة بع صوتك؛ يصبح تصويتك بوزنين في التصويت التالي." },
+    talkative: { name: "الثرثار", icon: "🗣️", team: "village", type: "talkative", rarity: "نادر", weight: 12, description: "اختر لاعبًا؛ عند موتك ينكشف دوره للجميع." },
+    sheikh: { name: "الشيخ", icon: "🕌", team: "village", type: "sheikh", rarity: "استثنائي", weight: 10, description: "مرتان: امنع كل تحويلات المواطنين إلى الشر في هذه الليلة." },
+    grave_robber: { name: "لص القبور", icon: "⚰️", team: "village", type: "grave_robber", rarity: "استثنائي", weight: 8, description: "مرة واحدة اسرق قدرة دور ميت. إذا عاد ذلك اللاعب، تبقى قدرته مسروقة." },
+    armored: { name: "المدرّع", icon: "🪖", team: "village", type: "armored", rarity: "نادر", weight: 12, description: "أول هجوم ليلي عليك يكسر درعك ولا تموت؛ الهجوم التالي يقتلك." },
+    chain_owner: { name: "صاحب السلسلة", icon: "🔗", team: "village", type: "chain_owner", rarity: "استثنائي", weight: 9, description: "اربط لاعبين اثنين كحد أقصى؛ عند موتك يموت الشخص المربوط الحي." },
+    seer_apprentice: { name: "طالب عرّاف", icon: "📜", team: "village", type: "seer_apprentice", rarity: "استثنائي", weight: 8, description: "إذا مات العرّاف تصبح عرّافًا وترث معلومات كشفه." },
+    spiritualist: { name: "الروحاني", icon: "🕯️", team: "village", type: "spiritualist", rarity: "خرافي", weight: 8, description: "اسأل الأموات ثلاث مرات عن دورهم. بعد السؤال الثالث تُمنع من التصويت والكلام." },
+    dreamer: { name: "مفسر الأحلام", icon: "💤", team: "village", type: "dreamer", rarity: "نادر", weight: 11, description: "اختر لاعبًا؛ إذا مات تعرف أسماء القتلة الأحياء." },
+    astronomer: { name: "عالم الفلك", icon: "🔭", team: "village", type: "astronomer", rarity: "نادر", weight: 12, description: "اكشف فقط هل اللاعب من فريق الخير أم الشر." },
+    prospector: { name: "المنجّم", icon: "⛏️", team: "village", type: "prospector", rarity: "استثنائي", weight: 8, description: "مرة واحدة افحص ميتًا؛ بنسبة 50% تعرف أسماء القتلة." },
+    archer: { name: "رامي السهام", icon: "🏹", team: "village", type: "archer", rarity: "استثنائي", weight: 10, description: "علّم هدفًا أولًا، ثم أطلق سهمًا في ليلة لاحقة. سهمان ولا يخترق الحماية." },
+    noble_knight: { name: "الفارس النبيل", icon: "🐎", team: "village", type: "noble_knight", rarity: "خرافي", weight: 9, description: "احمِ لاعبًا من هجمات وتحويلات الشر، ولا تستطيع حماية الشخص نفسه مرتين." },
+    poet: { name: "الشاعر", icon: "🎼", team: "village", type: "poet", rarity: "نادر", weight: 11, description: "مرة واحدة اجمع الناس ليلًا؛ لا يموت أحد من الهجمات غير الخارقة هذه الليلة." },
+    blacksmith: { name: "الحدّاد", icon: "🔨", team: "village", type: "blacksmith", rarity: "خرافي", weight: 7, description: "اصنع سيفًا أو درعًا خلال 3 ليالٍ، ثم أعطه للاعب تختاره." },
+    king: { name: "الملك", icon: "👑", team: "village", type: "king", rarity: "أسطوري", weight: 8, description: "يكشف دوره في أول تصويت؛ صوته بوزنين حينها ثم يُمنع من التصويت." },
+    prince: { name: "الأمير", icon: "🤴", team: "village", type: "prince", rarity: "أسطوري", weight: 10, description: "صوته بوزنين مرة واحدة، ثم يصبح وزنه صفرًا." },
+    investigator: { name: "المحقق", icon: "🕵️‍♂️", team: "village", type: "investigator", rarity: "نادر", weight: 11, description: "اختر شخصين لمعرفة هل هما من الفريق نفسه. الاستخدامات بلا حد." },
+    mediator: { name: "الوسيط", icon: "🕊️", team: "village", type: "mediator", rarity: "خرافي", weight: 8, description: "أحيِ ميتًا مرة واحدة؛ يعود فلاحًا، والشرير يعود لدوره بلا قدرة." },
+    hermit: { name: "الناسك", icon: "🧙‍♂️", team: "village", type: "hermit", rarity: "خرافي", weight: 9, description: "مرة واحدة اختر قتلًا خارقًا للحماية أو حمايةً من التحويل؛ اختيارك يلغي الآخر." },
+    preacher: { name: "الداعية", icon: "📣", team: "village", type: "preacher", rarity: "استثنائي", weight: 9, description: "مرتان: اختر مرتزقًا واحذف قدرته لبقية اللعبة." },
+    alchemist: { name: "الخيميائي", icon: "💉", team: "village", type: "alchemist", rarity: "استثنائي", weight: 9, description: "ضع إبرة؛ إذا قُتل هدفك ينجو ثم يموت في صباح الليلة التالية." },
+    royal_doctor: { name: "الطبيب الملكي", icon: "👑", team: "village", type: "royal_doctor", rarity: "خرافي", weight: 8, description: "علاجك يحمي ليلتين. لا تعالج غيره حتى يزول، ولا تعيد نفس الشخص؛ تعالج نفسك مرة." },
+    sultan: { name: "السلطان", icon: "🫅", team: "village", type: "sultan", rarity: "خرافي", weight: 8, description: "إذا أعدمتك القرية تنجو، لكن تفقد حق التصويت." },
+    caesar: { name: "القيصر", icon: "🏛️", team: "village", type: "caesar", rarity: "أسطوري", weight: 10, description: "إذا أُعدمت، تموت لكن أصوات من صوّتوا عليك تصبح صفرًا في التصويت التالي." },
+    genie: { name: "المارد", icon: "🧞", team: "village", type: "genie", rarity: "خرافي", weight: 7, description: "مرة واحدة أحيِ ميتًا ثم تموت أنت؛ العائد يصبح فلاحًا." },
+    priest: { name: "الكاهن", icon: "⛪", team: "village", type: "priest", rarity: "استثنائي", weight: 9, description: "مرتان توقّع من سيموت ليلًا. إن أصبت، تحصل على صوت إضافي في التصويت التالي." },
+    warrior: { name: "المحارب", icon: "⚔️", team: "village", type: "warrior", rarity: "نادر", weight: 11, description: "ينجو من هجوم الليل ثم يموت في صباح الليلة التالية، ويعرف من هاجمه." },
+    carpenter: { name: "النجّار", icon: "🪚", team: "village", type: "carpenter", rarity: "استثنائي", weight: 9, description: "اصنع درعًا خشبيًا لنفسك أو رمحًا يقتل هدفًا بعد ليلتين إن لم يكن محميًا." },
+
+    turned: { name: "متحوّل", icon: "🩸", team: "wolves", type: "turned", hidden: true, rarity: "شائع", weight: 0, description: "تحوّلت إلى فريق الشر وفقدت قدرتك الأصلية." }
+  };
+
+  function addOn() {
+    if (!state[ADDON_KEY]) {
+      state[ADDON_KEY] = {
+        states: {},
+        extraAttacks: [],
+        protectionUntil: {},
+        noVoteUntil: {},
+        permanentNoVote: {},
+        zeroVoteUntil: {},
+        disabledUntil: {},
+        permanentlyDisabled: {},
+        masks: {},
+        chains: [],
+        twinLinks: {},
+        deathQueue: [],
+        afterDeathDone: {},
+        notices: [],
+        delayedDeaths: {},
+        conversionBlockedNight: null,
+        currentNightPrepared: null,
+        seen: {},
+        dreamTargets: {},
+        potions: [],
+        potionChoices: {},
+        infectionQueue: [],
+        blacksmithJobs: {},
+        inventory: {},
+        voteBonus: {},
+        currentVoteWeights: {},
+        roleStolen: {},
+        revealedPublic: {},
+        action: null,
+        afterDeathCallback: null
+      };
+    }
+    return state[ADDON_KEY];
+  }
+
+  function roleState(player) {
+    const addon = addOn();
+    if (!addon.states[player.id]) addon.states[player.id] = {};
+    return addon.states[player.id];
+  }
+
+  function isEvil(player) {
+    return getRole(player) && getRole(player).team === "wolves";
+  }
+
+  function isDisabled(player) {
+    const addon = addOn();
+    return !!addon.permanentlyDisabled[player.id] ||
+      (addon.disabledUntil[player.id] || 0) >= state.night;
+  }
+
+  function addRoleCards() {
+    const evilList = $("mercenaryRoleOptions") || $("roleOptions");
+    const villageList = $("villageRoleOptions") || $("roleOptions");
+    Object.entries(ADDED_ROLES).forEach(function (entry) {
+      const id = entry[0];
+      const role = entry[1];
+      if (role.hidden) {
+        ROLES[id] = {
+          name: role.name,
+          icon: role.icon,
+          team: role.team,
+          teamName: "فريق القتلة",
+          description: role.description
+        };
+        return;
+      }
+      ROLES[id] = {
+        name: role.name,
+        icon: role.icon,
+        team: role.team,
+        teamName: role.team === "wolves" ? "فريق القتلة" : "فريق القرية",
+        description: role.description
+      };
+      ROLE_WEIGHTS[id] = role.weight;
+      if (typeof ROLE_RARITIES !== "undefined") ROLE_RARITIES[id] = role.rarity;
+      if (!Object.prototype.hasOwnProperty.call(state.activeRoles, id)) state.activeRoles[id] = false;
+      if (document.querySelector('.role-option[data-role="' + id + '"]')) return;
+      const card = document.createElement("button");
+      card.className = "role-option addon-role";
+      card.type = "button";
+      card.dataset.role = id;
+      card.innerHTML =
+        '<div class="role-option-glow"></div>' +
+        '<div class="role-option-icon">' + role.icon + '</div>' +
+        '<div class="role-option-info"><strong>' + role.name + '</strong><small></small></div>' +
+        '<div class="role-power"><span>متوقف</span><i class="power-light"></i></div>';
+      (role.team === "wolves" ? evilList : villageList).appendChild(card);
+    });
+    if (typeof applyRoleRarities === "function") applyRoleRarities();
+    if (typeof sortRoleCardsByRarity === "function") sortRoleCardsByRarity();
+    if (typeof renderRoleOptions === "function") renderRoleOptions();
+  }
+
+  function randomFrom(list) {
+    return list[Math.floor(Math.random() * list.length)];
+  }
+
+  function setupActionFrame(player, icon, title, description) {
+    state.currentPlayer = player;
+    state.selectedTarget = null;
+    state.actionLocked = false;
+    if ($("actionPlayerName")) $("actionPlayerName").textContent = player.name;
+    if ($("actionNightNumber")) $("actionNightNumber").textContent = state.night;
+    if (typeof updatePlayerAvatars === "function") updatePlayerAvatars();
+    $("actionIcon").textContent = icon;
+    $("actionTitle").textContent = title;
+    $("actionDescription").textContent = description;
+    $("confirmActionBtn").classList.add("hidden");
+    $("skipActionBtn").classList.add("hidden");
+    $("confirmActionBtn").removeAttribute("disabled");
+    $("skipActionBtn").removeAttribute("disabled");
+    $("actionTargets").innerHTML = "";
+  }
+
+  function finishAddonAction() {
+    const addon = addOn();
+    addon.action = null;
+    state.actionLocked = true;
+    $("confirmActionBtn").setAttribute("disabled", "disabled");
+    finishNightTurn();
+  }
+
+  function showSkip(player, text) {
+    setupActionFrame(player, getRole(player).icon, getRole(player).name, text);
+    state.currentAction = "skip";
+    $("skipActionBtn").classList.remove("hidden");
+    showScreen("actionScreen");
+  }
+
+  function showOptions(player, title, description, choices) {
+    setupActionFrame(player, getRole(player).icon, title, description);
+    state.currentAction = "addon-options";
+    const container = $("actionTargets");
+    choices.forEach(function (choice) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "target-btn";
+      button.innerHTML = "<span>" + choice.icon + " " + choice.label + "</span><span>›</span>";
+      button.addEventListener("click", function () {
+        choice.run();
+      });
+      container.appendChild(button);
+    });
+    $("skipActionBtn").classList.remove("hidden");
+    showScreen("actionScreen");
+  }
+
+  function picker(player, config) {
+    setupActionFrame(player, config.icon || getRole(player).icon, config.title, config.description);
+    const targets = (config.targets || alivePlayers()).filter(function (target) {
+      if (!config.allowSelf && target.id === player.id) return false;
+      return true;
+    });
+    const action = {
+      kind: config.kind,
+      playerId: player.id,
+      targets: [],
+      min: config.min || 1,
+      max: config.max || 1,
+      config: config
+    };
+    addOn().action = action;
+    state.currentAction = "addon:" + config.kind;
+    const container = $("actionTargets");
+    if (!targets.length) {
+      container.innerHTML = '<div class="hint">لا يوجد لاعب مناسب لهذه القدرة.</div>';
+      $("skipActionBtn").classList.remove("hidden");
+      showScreen("actionScreen");
+      return;
+    }
+    targets.forEach(function (target) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "target-btn";
+      button.dataset.targetId = target.id;
+      const avatar = target.avatar
+        ? '<img src="' + escapeHTML(target.avatar) + '" alt="" class="target-avatar">'
+        : '<span class="target-avatar target-avatar-empty">👤</span>';
+      button.innerHTML =
+        '<span class="target-player-info">' + avatar + '<span>' +
+        escapeHTML(target.name) + '</span></span><span>›</span>';
+      button.addEventListener("click", function () {
+        if (state.actionLocked) return;
+        const index = action.targets.indexOf(target.id);
+        if (index >= 0) {
+          action.targets.splice(index, 1);
+          button.classList.remove("selected");
+        } else {
+          if (action.targets.length >= action.max) {
+            const removed = action.targets.shift();
+            const old = container.querySelector('[data-target-id="' + removed + '"]');
+            if (old) old.classList.remove("selected");
+          }
+          action.targets.push(target.id);
+          button.classList.add("selected");
+        }
+        state.selectedTarget = action.targets[0] || null;
+        $("confirmActionBtn").classList.toggle("hidden", action.targets.length < action.min);
+      });
+      container.appendChild(button);
+    });
+    $("skipActionBtn").classList.toggle("hidden", !config.allowSkip);
+    showScreen("actionScreen");
+  }
+
+  function revealRoleTo(player, target, mode) {
+    const addon = addOn();
+    let shown = getRole(target);
+    if (mode === "seer") {
+      if (target.role === "disguised") {
+        const fake = roleState(target).fakeRole || "villager";
+        shown = ROLES[fake];
+      } else if (addon.masks[target.id]) {
+        shown = ROLES.werewolf;
+      } else if (target.role === "ninja") {
+        shown = { name: "غير معروف", icon: "❓", team: "unknown" };
+      }
+    }
+    addon.seen[player.id] = addon.seen[player.id] || [];
+    addon.seen[player.id].push({ targetId: target.id, role: shown.name, night: state.night });
+    return shown;
+  }
+
+  function showSpyInfo(player) {
+    const villagers = alivePlayers().filter(function (target) { return !isEvil(target); });
+    const list = villagers.length
+      ? villagers.map(function (target) {
+          const role = getRole(target);
+          return "• " + escapeHTML(target.name) + ": " + role.icon + " " + role.name;
+        }).join("<br>")
+      : "لا يوجد مواطن حي.";
+    showModal("🕵️ معلومات الجاسوس", list, "🕵️", function () {
+      finishAddonAction();
+    }, true);
+  }
+
+  function openAddedRoleAction(player) {
+    const role = ADDED_ROLES[player.role];
+    if (!role) return false;
+    const rs = roleState(player);
+    if (isDisabled(player)) {
+      showSkip(player, "قدرتك معطلة هذه الليلة.");
+      return true;
+    }
+    if (player.role === "spy") {
+      setupActionFrame(player, role.icon, role.name, role.description);
+      state.currentAction = "addon-spy";
+      showScreen("actionScreen");
+      showSpyInfo(player);
+      return true;
+    }
+    if (player.role === "disguised") {
+      showSkip(player, "ساعد فريق القتلة في الكلام. هويتك الوهمية تظهر للعرّاف عند كشفك.");
+      return true;
+    }
+    if (player.role === "turned") {
+      showSkip(player, "أنت من فريق الشر، لكنك بلا قدرة.");
+      return true;
+    }
+    if (player.role === "armored" || player.role === "viking" || player.role === "sultan" ||
+        player.role === "caesar" || player.role === "warrior" || player.role === "farmer" ||
+        player.role === "cursed" || player.role === "ghoul" || player.role === "resentful" ||
+        player.role === "seer_apprentice") {
+      showSkip(player, role.description);
+      return true;
+    }
+    if (player.role === "assassin") {
+      if (rs.used) return showSkip(player, "استُخدمت قدرة السفاح.");
+      showOptions(player, "السفاح", "اختر استخدام القدرة أو تخطَّ الدور.", [
+        { icon: "🗡️", label: "اجعل هجوم القتلة يخترق الحمايات", run: function () {
+          addOn().piercingPackNight = state.night; rs.used = true; finishAddonAction();
+        }}
+      ]);
+      return true;
+    }
+    if (player.role === "commander") {
+      rs.used = rs.used || {};
+      const choices = [];
+      if (!rs.used.kill) choices.push({ icon: "🗡️", label: "قتل لاعب", run: function () {
+        picker(player, { kind: "commander-kill", title: "قتل مباشر", description: "اختر لاعبًا لقتله.", allowSelf: false });
+      }});
+      if (!rs.used.disable) choices.push({ icon: "🚫", label: "تعطيل قدرة", run: function () {
+        picker(player, { kind: "commander-disable", title: "تعطيل قدرة", description: "اختر لاعبًا لتعطيل قدرته الليلة القادمة.", allowSelf: false });
+      }});
+      if (!rs.used.silence) choices.push({ icon: "🤐", label: "تعطيل صوت", run: function () {
+        picker(player, { kind: "commander-silence", title: "إسكات لاعب", description: "اختر لاعبًا ليُمنع من الكلام في النقاش القادم.", allowSelf: true });
+      }});
+      if (!rs.used.identify) choices.push({ icon: "🔮", label: "تعريف شخص", run: function () {
+        picker(player, { kind: "commander-identify", title: "تعريف الدور", description: "اختر لاعبًا لمعرفة دوره.", allowSelf: false });
+      }});
+      if (!choices.length) return showSkip(player, "استخدمت كل قدرات القائد.");
+      showOptions(player, "قائد المرتزقة", "كل قدرة متاحة مرة واحدة فقط.", choices);
+      return true;
+    }
+    if (player.role === "zombie") {
+      if (rs.used) return showSkip(player, "استخدمت اختيار الزومبي.");
+      showOptions(player, "الزومبي", "اختر القتل أو التحويل (مرة واحدة).", [
+        { icon: "🗡️", label: "قتل لاعب", run: function () {
+          picker(player, { kind: "zombie-kill", title: "هجوم الزومبي", description: "اختر ضحية.", allowSelf: false });
+        }},
+        { icon: "🩸", label: "تحويل مواطن", run: function () {
+          picker(player, { kind: "zombie-convert", title: "تحويل مواطن", description: "اختر لاعبًا من فريق القرية.", allowSelf: false,
+            targets: alivePlayers().filter(function (target) { return !isEvil(target); }) });
+        }}
+      ]);
+      return true;
+    }
+    if (player.role === "sorcerer") {
+      picker(player, { kind: "sorcerer", title: "جرعة المشعوذ", description: "اختر لاعبين ليتلقيا الجرعة السرية.", allowSelf: false, min: 2, max: 2 });
+      return true;
+    }
+    if (player.role === "dark_witch" || player.role === "jailer" || player.role === "roadblock" ||
+        player.role === "imp" || player.role === "thief" || player.role === "ghost" || player.role === "pirate" ||
+        player.role === "gambler" || player.role === "raven" || player.role === "plague" || player.role === "ninja") {
+      const oneUse = ["dark_witch", "jailer", "thief", "ghost"].indexOf(player.role) >= 0;
+      if (oneUse && rs.used) return showSkip(player, "استُخدمت قدرتك.");
+      const config = {
+        kind: player.role,
+        title: role.name,
+        description: role.description,
+        allowSelf: player.role === "gambler" || player.role === "raven",
+        allowSkip: true
+      };
+      if (player.role === "dark_witch") config.targets = alivePlayers().filter(function (target) { return !isEvil(target); });
+      picker(player, config);
+      return true;
+    }
+    if (player.role === "forger") {
+      picker(player, { kind: "forger", title: "نقل القناع", description: "اختر صاحب القناع الجديد. ينتقل القناع من أي شخص سابق.", allowSelf: true, allowSkip: true });
+      return true;
+    }
+    if (player.role === "twin") {
+      if (rs.linked) return showSkip(player, "أنت مرتبط بالفعل بتوأمك.");
+      picker(player, { kind: "twin", title: "ربط التوأم", description: "اختر عضوًا حيًا من فريق القتلة لربطكما.", allowSelf: false,
+        targets: alivePlayers().filter(function (target) { return target.id !== player.id && isEvil(target); }) });
+      return true;
+    }
+    if (player.role === "swordsman") {
+      if (rs.used) return showSkip(player, "استخدمت السيف.");
+      picker(player, { kind: "swordsman", title: "سحب السيف", description: "اختر من تقتله. الضربة تخترق الحمايات ويُعلن السيف صباحًا.", allowSelf: false });
+      return true;
+    }
+    if (player.role === "merchant" || player.role === "sheikh" || player.role === "poet") {
+      const limit = player.role === "sheikh" ? 2 : 1;
+      if ((rs.used || 0) >= limit) return showSkip(player, "استخدمت قدرتك.");
+      if (player.role === "merchant") {
+        showOptions(player, "التاجر", "بع صوتك الآن لتحصل على صوتين في التصويت القادم.", [
+          { icon: "💰", label: "بيع الصوت", run: function () { rs.used = true; rs.doubleVoteNight = state.night + 1; finishAddonAction(); }}
+        ]);
+      } else {
+        showOptions(player, role.name, role.description, [
+          { icon: player.role === "poet" ? "🎼" : "🛡️", label: "استخدام القدرة", run: function () {
+            rs.used = (rs.used || 0) + 1;
+            if (player.role === "sheikh") addOn().conversionBlockedNight = state.night;
+            if (player.role === "poet") addOn().peacefulNight = state.night;
+            finishAddonAction();
+          }}
+        ]);
+      }
+      return true;
+    }
+    if (player.role === "talkative" || player.role === "dreamer" || player.role === "noble_knight" ||
+        player.role === "alchemist" || player.role === "priest") {
+      const limits = { alchemist: 1, priest: 2 };
+      if (limits[player.role] && (rs.used || 0) >= limits[player.role]) return showSkip(player, "استخدمت كل الاستخدامات.");
+      picker(player, { kind: player.role, title: role.name, description: role.description, allowSelf: player.role === "noble_knight" || player.role === "priest", allowSkip: true,
+        targets: player.role === "noble_knight"
+          ? alivePlayers().filter(function (target) { return !rs.protected || rs.protected.indexOf(target.id) < 0; })
+          : alivePlayers() });
+      return true;
+    }
+    if (player.role === "grave_robber" || player.role === "spiritualist" || player.role === "prospector" ||
+        player.role === "mediator" || player.role === "genie") {
+      const dead = state.players.filter(function (target) { return !target.alive; });
+      const limits = { grave_robber: 1, prospector: 1, mediator: 1, genie: 1, spiritualist: 3 };
+      if ((rs.used || 0) >= limits[player.role]) return showSkip(player, "لا توجد استخدامات متبقية.");
+      picker(player, { kind: player.role, title: role.name, description: role.description, allowSelf: false, targets: dead, allowSkip: true });
+      return true;
+    }
+    if (player.role === "chain_owner") {
+      if ((rs.used || 0) >= 2) return showSkip(player, "استخدمت السلسلتين.");
+      picker(player, { kind: "chain_owner", title: "ربط السلسلة", description: "اختر شخصًا؛ إذا مت قبل موته يموت معك.", allowSelf: false, allowSkip: true });
+      return true;
+    }
+    if (player.role === "astronomer") {
+      picker(player, { kind: "astronomer", title: "رصد النجوم", description: "اختر لاعبًا لمعرفة فريقه فقط.", allowSelf: false, allowSkip: true });
+      return true;
+    }
+    if (player.role === "archer") {
+      if ((rs.arrows || 0) >= 2) return showSkip(player, "انتهت سهامك.");
+      const kind = rs.mark ? "archer-fire" : "archer-mark";
+      picker(player, { kind: kind, title: rs.mark ? "إطلاق السهم" : "تأشير السهم", description: rs.mark ? "اختر هدف إطلاق السهم." : "اختر لاعبًا لتجهيز سهمك ضده لليلة لاحقة.", allowSelf: false, allowSkip: true });
+      return true;
+    }
+    if (player.role === "blacksmith") {
+      const job = addOn().blacksmithJobs[player.id];
+      if (job && job.readyNight <= state.night) {
+        picker(player, { kind: "blacksmith-give", title: "تسليم الصناعة", description: "اختر من يأخذ " + (job.item === "sword" ? "السيف" : "الدرع") + ".", allowSelf: true });
+      } else if (job) {
+        return showSkip(player, "الصناعة مستمرة؛ تكتمل في الليلة " + job.readyNight + ".");
+      } else {
+        showOptions(player, "الحدّاد", "اختر ما تريد صنعه؛ يستغرق 3 ليالٍ.", [
+          { icon: "⚔️", label: "صناعة سيف", run: function () { addOn().blacksmithJobs[player.id] = { item: "sword", readyNight: state.night + 3 }; finishAddonAction(); }},
+          { icon: "🛡️", label: "صناعة درع", run: function () { addOn().blacksmithJobs[player.id] = { item: "shield", readyNight: state.night + 3 }; finishAddonAction(); }}
+        ]);
+      }
+      return true;
+    }
+    if (player.role === "investigator") {
+      picker(player, { kind: "investigator", title: "تحقيق الفريق", description: "اختر شخصين لمعرفة إن كانا في الفريق نفسه.", allowSelf: false, min: 2, max: 2, allowSkip: true });
+      return true;
+    }
+    if (player.role === "hermit") {
+      if (rs.used) return showSkip(player, "اخترت طريقك سابقًا.");
+      showOptions(player, "الناسك", "اختر واحدة فقط؛ ستفقد الأخرى.", [
+        { icon: "⚔️", label: "قتل خارق للحماية", run: function () { picker(player, { kind: "hermit-kill", title: "ضربة الناسك", description: "اختر لاعبًا لقتله مهما كانت حمايته.", allowSelf: false }); }},
+        { icon: "🛡️", label: "حماية من التحويل", run: function () { picker(player, { kind: "hermit-protect", title: "حماية الناسك", description: "اختر لاعبًا لحمايته من التحويل.", allowSelf: true }); }}
+      ]);
+      return true;
+    }
+    if (player.role === "preacher") {
+      if ((rs.used || 0) >= 2) return showSkip(player, "استخدمت الدعوة مرتين.");
+      picker(player, { kind: "preacher", title: "الداعية", description: "اختر لاعبًا من فريق الشر لتعطيل قدرته دائمًا.", allowSelf: false,
+        targets: alivePlayers().filter(function (target) { return isEvil(target); }), allowSkip: true });
+      return true;
+    }
+    if (player.role === "royal_doctor") {
+      if (rs.busyUntil && rs.busyUntil >= state.night) return showSkip(player, "العلاج مستمر ولا يمكنك اختيار أحد حتى يزول.");
+      picker(player, { kind: "royal_doctor", title: "العلاج الملكي", description: "اختر من تحميه ليلتين. لا تعيد نفس اللاعب؛ لنفسك مرة.", allowSelf: !rs.selfUsed, allowSkip: true,
+        targets: alivePlayers().filter(function (target) { return !rs.treated || rs.treated.indexOf(target.id) < 0; }) });
+      return true;
+    }
+    if (player.role === "carpenter") {
+      if (rs.used) return showSkip(player, "استُخدمت صناعة النجار.");
+      showOptions(player, "النجّار", "اختر صناعة واحدة.", [
+        { icon: "🛡️", label: "درع خشبي لنفسي", run: function () { rs.used = true; rs.woodShield = true; finishAddonAction(); }},
+        { icon: "🗡️", label: "رمح مؤجل", run: function () { picker(player, { kind: "carpenter-spear", title: "رمي الرمح", description: "اختر هدفًا؛ يصله الرمح بعد ليلتين إذا لم يكن محميًا.", allowSelf: false }); }}
+      ]);
+      return true;
+    }
+    return false;
+  }
+
+  function openAction(player) {
+    const addon = addOn();
+    const inventory = addon.inventory[player.id] || {};
+    if (inventory.sword && !addon.ignoreItemFor) {
+      showOptions(player, "سيف جاهز", "لديك سيف. اختر استعماله الآن أو متابعة قدرتك الأصلية.", [
+        { icon: "⚔️", label: "استعمال السيف", run: function () {
+          picker(player, { kind: "item-sword", title: "ضربة السيف", description: "اختر لاعبًا؛ السيف يخترق جميع الحمايات.", allowSelf: false });
+        }},
+        { icon: getRole(player).icon, label: "استخدام دوري الأصلي", run: function () {
+          addon.ignoreItemFor = player.id;
+          openAction(player);
+          addon.ignoreItemFor = null;
+        }}
+      ]);
+      return;
+    }
+    if (player && openAddedRoleAction(player)) return;
+    baseShowActionForPlayer(player);
+  }
+
+  const baseShowActionForPlayer = window.showActionForPlayer;
+  const baseBeginNight = window.beginNight;
+  const baseResolveNight = window.resolveNight;
+  const baseFinishNightResult = window.finishNightResult;
+  const baseStartDiscussion = window.startDiscussion;
+  const baseContinueAfterVote = window.continueAfterVote;
+  const baseStartGame = window.startGame;
+  const baseNewGame = window.newGame;
+
+  window.showActionForPlayer = openAction;
+
+  function commitCustomAction() {
+    const addon = addOn();
+    const action = addon.action;
+    if (!action || state.actionLocked) return false;
+    const player = getPlayer(action.playerId);
+    if (!player) return true;
+    if (action.targets.length < action.min) {
+      showToast("اختر الهدف المطلوب أولًا.", "error");
+      return true;
+    }
+    const targets = action.targets.map(getPlayer).filter(Boolean);
+    const target = targets[0];
+    const rs = roleState(player);
+    state.actionLocked = true;
+
+    switch (action.kind) {
+      case "gambler":
+        addon.extraAttacks.push({ targetId: Math.random() < 0.5 ? player.id : target.id, source: "المقامر", pierce: true });
+        addon.notices.push("🎲 المقامر لعب حظه هذه الليلة.");
+        break;
+      case "commander-kill": addon.extraAttacks.push({ targetId: target.id, source: "قائد المرتزقة", pierce: false }); rs.used.kill = true; break;
+      case "commander-disable": addon.disabledUntil[target.id] = state.night + 1; rs.used.disable = true; break;
+      case "commander-silence": addon.silencedUntil = addon.silencedUntil || {}; addon.silencedUntil[target.id] = state.night; rs.used.silence = true; break;
+      case "commander-identify":
+        rs.used.identify = true;
+        showModal("🎖️ تعريف الشخص", escapeHTML(target.name) + " دوره: " + getRole(target).icon + " " + getRole(target).name, "🎖️", finishAddonAction, true);
+        return true;
+      case "zombie-kill": addon.extraAttacks.push({ targetId: target.id, source: "الزومبي", pierce: false }); rs.used = true; break;
+      case "zombie-convert": addon.conversions = addon.conversions || []; addon.conversions.push({ targetId: target.id, source: "الزومبي" }); rs.used = true; break;
+      case "sorcerer": addon.potions.push({ targets: targets.map(function (p) { return p.id; }), ready: false }); break;
+      case "dark_witch": addon.conversions = addon.conversions || []; addon.conversions.push({ targetId: target.id, source: "الساحرة" }); rs.used = true; break;
+      case "jailer": addon.disabledUntil[target.id] = state.night + 1; rs.used = true; break;
+      case "forger": addon.masks = {}; addon.masks[target.id] = true; break;
+      case "roadblock": addon.noVoteUntil[target.id] = state.night + 1; break;
+      case "imp": rs.targetId = target.id; break;
+      case "thief":
+        addon.stolenProtectionNight = addon.stolenProtectionNight || {};
+        addon.stolenProtectionNight[target.id] = state.night;
+        if (state.doctorTarget === target.id) state.doctorTarget = null;
+        rs.used = true;
+        break;
+      case "ghost": addon.disabledUntil[target.id] = state.night; rs.used = true; break;
+      case "pirate": rs.targetId = target.id; break;
+      case "raven":
+        const gift = randomFrom(["death", "shield", "disabled", "sword", "armor"]);
+        if (gift === "death") addon.extraAttacks.push({ targetId: target.id, source: "هدية الغراب", pierce: true });
+        if (gift === "shield") addon.protectionUntil[target.id] = Math.max(addon.protectionUntil[target.id] || 0, state.night);
+        if (gift === "disabled") addon.permanentlyDisabled[target.id] = true;
+        if (gift === "sword") { addon.inventory[target.id] = addon.inventory[target.id] || {}; addon.inventory[target.id].sword = true; }
+        if (gift === "armor") { addon.inventory[target.id] = addon.inventory[target.id] || {}; addon.inventory[target.id].armor = true; }
+        addon.notices.push("🐦‍⬛ هدية الغراب لـ" + escapeHTML(target.name) + ": " +
+          ({ death: "موت", shield: "حماية", disabled: "تعطيل دائم", sword: "سيف", armor: "درع دائم" })[gift] + ".");
+        break;
+      case "plague": addon.infectionQueue.push({ targetId: target.id, phase: "new" }); break;
+      case "ninja":
+        rs.marks = rs.marks || {};
+        rs.marks[target.id] = (rs.marks[target.id] || 0) + 1;
+        if (rs.marks[target.id] >= 2) { addon.extraAttacks.push({ targetId: target.id, source: "النينجا", pierce: true }); delete rs.marks[target.id]; }
+        break;
+      case "twin": addon.twinLinks[player.id] = target.id; addon.twinLinks[target.id] = player.id; rs.linked = true; break;
+      case "swordsman": addon.extraAttacks.push({ targetId: target.id, source: "السياف", pierce: true }); rs.used = true; addon.notices.push("⚔️ سُحب السيف هذه الليلة."); break;
+      case "item-sword":
+        addon.extraAttacks.push({ targetId: target.id, source: "سيف الحدّاد", pierce: true });
+        delete addon.inventory[player.id].sword;
+        addon.notices.push("⚔️ استُخدم سيف مُهدى هذه الليلة.");
+        break;
+      case "talkative": rs.targetId = target.id; break;
+      case "dreamer": addon.dreamTargets[player.id] = target.id; break;
+      case "noble_knight":
+        rs.protected = rs.protected || [];
+        rs.protected.push(target.id);
+        addon.protectionUntil[target.id] = Math.max(addon.protectionUntil[target.id] || 0, state.night);
+        addon.noConvertUntil = addon.noConvertUntil || {};
+        addon.noConvertUntil[target.id] = Math.max(addon.noConvertUntil[target.id] || 0, state.night);
+        break;
+      case "alchemist": addon.alchemistTargets = addon.alchemistTargets || {}; addon.alchemistTargets[target.id] = state.night; rs.used = (rs.used || 0) + 1; break;
+      case "priest": addon.priestPredictions = addon.priestPredictions || []; addon.priestPredictions.push({ ownerId: player.id, targetId: target.id, night: state.night }); rs.used = (rs.used || 0) + 1; break;
+      case "grave_robber": addon.roleStolen[target.id] = player.id; rs.stolenRole = target.role; rs.used = 1; addon.notices.push("⚰️ لص القبور سرق قدرة دور ميت."); break;
+      case "spiritualist":
+        rs.used = (rs.used || 0) + 1;
+        if (rs.used >= 3) { addon.permanentNoVote[player.id] = true; addon.silencedPermanent = addon.silencedPermanent || {}; addon.silencedPermanent[player.id] = true; }
+        showModal("🕯️ جواب الروح", escapeHTML(target.name) + " كان دوره: " + getRole(target).icon + " " + getRole(target).name, "🕯️", finishAddonAction, true);
+        return true;
+      case "prospector":
+        rs.used = 1;
+        showModal("⛏️ نتيجة المنجّم", Math.random() < 0.5 ? "لم تحصل على جواب هذه المرة." :
+          "القتلة الأحياء: " + alivePlayers().filter(isEvil).map(function (p) { return escapeHTML(p.name); }).join("، "), "⛏️", finishAddonAction, true);
+        return true;
+      case "mediator":
+        rs.used = 1; target.alive = true;
+        if (isEvil(target)) addon.permanentlyDisabled[target.id] = true;
+        else target.role = "villager";
+        addon.notices.push("🕊️ عاد " + escapeHTML(target.name) + " إلى الحياة.");
+        break;
+      case "genie":
+        rs.used = 1; target.alive = true; target.role = "villager";
+        player.alive = false; addon.notices.push("🧞 ضحّى المارد بنفسه لإحياء " + escapeHTML(target.name) + ".");
+        break;
+      case "chain_owner": addon.chains.push({ ownerId: player.id, targetId: target.id, active: true }); rs.used = (rs.used || 0) + 1; break;
+      case "astronomer":
+        showModal("🔭 نتيجة الرصد", escapeHTML(target.name) + " من فريق " + (isEvil(target) ? "الشر" : "الخير") + " فقط.", "🔭", finishAddonAction, true);
+        return true;
+      case "archer-mark": rs.mark = target.id; break;
+      case "archer-fire": addon.extraAttacks.push({ targetId: target.id, source: "سهم رامي السهام", pierce: false }); rs.arrows = (rs.arrows || 0) + 1; rs.mark = null; break;
+      case "blacksmith-give":
+        const job = addon.blacksmithJobs[player.id];
+        addon.inventory[target.id] = addon.inventory[target.id] || {};
+        addon.inventory[target.id][job.item] = true;
+        delete addon.blacksmithJobs[player.id];
+        addon.notices.push("🔨 سلّم الحدّاد " + (job.item === "sword" ? "سيفًا" : "درعًا") + " إلى " + escapeHTML(target.name) + ".");
+        break;
+      case "investigator":
+        const same = isEvil(targets[0]) === isEvil(targets[1]);
+        showModal("🕵️ نتيجة التحقيق", escapeHTML(targets[0].name) + " و" + escapeHTML(targets[1].name) + (same ? " من الفريق نفسه." : " ليسا من الفريق نفسه."), "🕵️", finishAddonAction, true);
+        return true;
+      case "hermit-kill": addon.extraAttacks.push({ targetId: target.id, source: "الناسك", pierce: true }); rs.used = true; break;
+      case "hermit-protect": addon.noConvertUntil = addon.noConvertUntil || {}; addon.noConvertUntil[target.id] = 9999; rs.used = true; break;
+      case "preacher": addon.permanentlyDisabled[target.id] = true; rs.used = (rs.used || 0) + 1; break;
+      case "royal_doctor":
+        rs.treated = rs.treated || [];
+        rs.treated.push(target.id);
+        if (target.id === player.id) rs.selfUsed = true;
+        rs.busyUntil = state.night + 1;
+        addon.protectionUntil[target.id] = state.night + 1;
+        break;
+      case "carpenter-spear": rs.used = true; addon.delayedDeaths[state.night + 2] = addon.delayedDeaths[state.night + 2] || []; addon.delayedDeaths[state.night + 2].push({ targetId: target.id, source: "رمح النجار", pierce: false }); break;
+      default: break;
+    }
+    finishAddonAction();
+    return true;
+  }
+
+  function prepareNight() {
+    const addon = addOn();
+    addon.currentNightPrepared = state.night;
+    if (addon.piercingPackNight === state.night) {
+      state.doctorTarget = null;
+      state.isGroupPotionActive = false;
+      state.nightProtectedPlayers = [];
+    }
+    if (addon.stolenProtectionNight && addon.stolenProtectionNight[state.doctorTarget] === state.night) {
+      state.doctorTarget = null;
+    }
+    Object.keys(addon.twinLinks).forEach(function (id) {
+      const player = getPlayer(id);
+      if (player && player.alive) state.nightProtectedPlayers.push(id);
+    });
+    alivePlayers().forEach(function (player) {
+      const rs = roleState(player);
+      const inventory = addon.inventory[player.id] || {};
+      if (player.role === "armored" && !rs.armorBroken) state.nightProtectedPlayers.push(player.id);
+      if (player.role === "warrior" && !rs.hit) state.nightProtectedPlayers.push(player.id);
+      if (player.role === "carpenter" && rs.woodShield) state.nightProtectedPlayers.push(player.id);
+      if (inventory.armor) state.nightProtectedPlayers.push(player.id);
+      if ((addon.protectionUntil[player.id] || 0) >= state.night && !addon.stolenProtectionNight?.[player.id]) state.nightProtectedPlayers.push(player.id);
+    });
+    if (addon.peacefulNight === state.night) {
+      state.nightProtectedPlayers = alivePlayers().map(function (player) { return player.id; });
+    } else {
+      state.nightProtectedPlayers = Array.from(new Set(state.nightProtectedPlayers));
+    }
+  }
+
+  function hasProtection(player, pierce) {
+    if (pierce) return false;
+    const addon = addOn();
+    if (addon.peacefulNight === state.night) return true;
+    if ((addon.protectionUntil[player.id] || 0) >= state.night && !addon.stolenProtectionNight?.[player.id]) return true;
+    const rs = roleState(player);
+    const inventory = addon.inventory[player.id] || {};
+    if (player.role === "armored" && !rs.armorBroken) return true;
+    if (player.role === "warrior" && !rs.hit) return true;
+    if (player.role === "carpenter" && rs.woodShield) return true;
+    if (inventory.armor) return true;
+    return false;
+  }
+
+  function markProtectedAttack(player, source) {
+    const addon = addOn();
+    const rs = roleState(player);
+    if (player.role === "armored" && !rs.armorBroken) { rs.armorBroken = true; addon.notices.push("🪖 انكسر درع " + escapeHTML(player.name) + "."); }
+    if (player.role === "warrior" && !rs.hit) {
+      rs.hit = true;
+      addon.delayedDeaths[state.night + 1] = addon.delayedDeaths[state.night + 1] || [];
+      addon.delayedDeaths[state.night + 1].push({ targetId: player.id, source: source || "هجوم القتلة", pierce: true });
+      addon.notices.push("⚔️ نجا " + escapeHTML(player.name) + " مؤقتًا وسيعرف أن من هاجمه هو " + escapeHTML(source || "القتلة") + ".");
+    }
+    if (player.role === "carpenter" && rs.woodShield) { rs.woodShield = false; addon.notices.push("🪚 انكسر الدرع الخشبي لـ" + escapeHTML(player.name) + "."); }
+    if (addon.inventory[player.id] && addon.inventory[player.id].armor) { delete addon.inventory[player.id].armor; addon.notices.push("🛡️ استُهلك الدرع الدائم لـ" + escapeHTML(player.name) + "."); }
+  }
+
+  function applyDeath(player, source, pierce, deaths) {
+    if (!player || !player.alive) return false;
+    if (hasProtection(player, pierce)) {
+      markProtectedAttack(player, source);
+      return false;
+    }
+    if (player.role === "phoenix") handlePhoenixDeath(player);
+    else player.alive = false;
+    if (deaths.indexOf(player.id) < 0) deaths.push(player.id);
+    return true;
+  }
+
+  function queueDeathEffects(deadPlayers, context) {
+    const addon = addOn();
+    deadPlayers.forEach(function (player) {
+      if (!player) return;
+      if (addon.afterDeathDone[player.id]) return;
+      addon.afterDeathDone[player.id] = true;
+      const rs = roleState(player);
+      if (player.role === "talkative" && rs.targetId) {
+        const target = getPlayer(rs.targetId);
+        if (target) addon.notices.push("🗣️ كشف الثرثار دور " + escapeHTML(target.name) + ": " + getRole(target).icon + " " + getRole(target).name + ".");
+      }
+      if (player.role === "ghoul") addon.deathQueue.push({ ownerId: player.id, kind: "ghoul", context: context });
+      if (player.role === "imp" && rs.targetId) addon.permanentNoVote[rs.targetId] = true;
+      if (player.role === "pirate" && rs.targetId) addon.disabledUntil[rs.targetId] = Math.max(addon.disabledUntil[rs.targetId] || 0, state.night + 1);
+      if (player.role === "resentful" && context === "vote") addon.deathQueue.push({ ownerId: player.id, kind: "resentful", context: context });
+      addon.chains.forEach(function (chain) {
+        if (chain.active && chain.ownerId === player.id) {
+          const chained = getPlayer(chain.targetId);
+          if (chained && chained.alive) {
+            chained.alive = false;
+            state.nightDeaths = state.nightDeaths || [];
+            if (state.nightDeaths.indexOf(chained.id) < 0) state.nightDeaths.push(chained.id);
+            addon.notices.push("🔗 مات " + escapeHTML(chained.name) + " مع صاحب السلسلة.");
+          }
+        }
+      });
+      const linkedId = addon.twinLinks[player.id];
+      if (linkedId) {
+        const linked = getPlayer(linkedId);
+        if (linked && linked.alive) {
+          linked.alive = false;
+          state.nightDeaths = state.nightDeaths || [];
+          if (state.nightDeaths.indexOf(linked.id) < 0) state.nightDeaths.push(linked.id);
+          addon.notices.push("👥 مات " + escapeHTML(linked.name) + " بسبب رابط التوأم.");
+        }
+      }
+      Object.keys(addon.dreamTargets).forEach(function (dreamerId) {
+        if (addon.dreamTargets[dreamerId] === player.id) {
+          const dreamer = getPlayer(dreamerId);
+          if (dreamer && dreamer.alive) {
+            addon.notices.push("💤 عرف مفسر الأحلام القتلة: " +
+              alivePlayers().filter(isEvil).map(function (p) { return escapeHTML(p.name); }).join("، "));
+          }
+        }
+      });
+      if (player.role === "seer") {
+        alivePlayers().filter(function (candidate) { return candidate.role === "seer_apprentice"; }).forEach(function (apprentice) {
+          apprentice.role = "seer";
+          addon.notices.push("📜 أصبح " + escapeHTML(apprentice.name) + " عرّافًا بعد موت العرّاف.");
+        });
+      }
+    });
+  }
+
+  function applyAddonNightEffects() {
+    const addon = addOn();
+    const deaths = state.nightDeaths || [];
+    const initiallyDead = deaths.map(getPlayer).filter(Boolean);
+    const wolfTargetIds = Object.values(state.wolfChoices || {});
+    wolfTargetIds.forEach(function (id) {
+      const target = getPlayer(id);
+      if (!target || !target.alive) return;
+      if (target.role === "armored" && !roleState(target).armorBroken) markProtectedAttack(target, "القتلة");
+      if (target.role === "warrior" && !roleState(target).hit) markProtectedAttack(target, "القتلة");
+      if (target.role === "carpenter" && roleState(target).woodShield) markProtectedAttack(target, "القتلة");
+    });
+    (addon.delayedDeaths[state.night] || []).forEach(function (event) {
+      const target = getPlayer(event.targetId);
+      applyDeath(target, event.source, event.pierce, deaths);
+    });
+    delete addon.delayedDeaths[state.night];
+    (addon.extraAttacks || []).forEach(function (attack) {
+      applyDeath(getPlayer(attack.targetId), attack.source, attack.pierce, deaths);
+    });
+    addon.extraAttacks = [];
+    (addon.conversions || []).forEach(function (conversion) {
+      const target = getPlayer(conversion.targetId);
+      const block = addon.conversionBlockedNight === state.night ||
+        ((addon.noConvertUntil && addon.noConvertUntil[conversion.targetId]) || 0) >= state.night;
+      if (target && target.alive && !isEvil(target) && !block) {
+        target.originalRole = target.role;
+        target.role = "turned";
+        addon.notices.push("🩸 تحوّل لاعب إلى فريق الشر.");
+      }
+    });
+    addon.conversions = [];
+    (addon.potions || []).filter(function (potion) { return potion.ready; }).forEach(function (potion) {
+      const choices = potion.targets.map(function (id) { return addon.potionChoices[id]; });
+      const same = choices[0] === choices[1];
+      potion.targets.forEach(function (id, index) {
+        if (same || choices[index] === "drink") applyDeath(getPlayer(id), "جرعة المشعوذ", true, deaths);
+      });
+    });
+    addon.potions = (addon.potions || []).filter(function (potion) { return !potion.ready; });
+    (addon.priestPredictions || []).filter(function (prediction) { return prediction.night === state.night; }).forEach(function (prediction) {
+      if (deaths.indexOf(prediction.targetId) >= 0) {
+        addon.voteBonus[prediction.ownerId] = (addon.voteBonus[prediction.ownerId] || 0) + 1;
+        addon.notices.push("⛪ أصاب الكاهن توقّعه وحصل على صوت إضافي.");
+      }
+    });
+    addon.priestPredictions = (addon.priestPredictions || []).filter(function (prediction) { return prediction.night !== state.night; });
+    const finalDead = deaths.map(getPlayer).filter(Boolean);
+    queueDeathEffects(finalDead, "night");
+    if (addon.notices.length) {
+      state.nightAddonNotices = addon.notices.splice(0);
+    }
+  }
+
+  function beginPotionChoices(next) {
+    const addon = addOn();
+    const potion = addon.potions.find(function (entry) { return !entry.ready; });
+    if (!potion) return next();
+    const targets = potion.targets.map(getPlayer).filter(function (p) { return p && p.alive; });
+    if (targets.length !== 2) { potion.ready = true; return next(); }
+    function ask(index) {
+      const target = targets[index];
+      setupActionFrame(target, "🧪", "جرعة المشعوذ", "اختر سرًا: هل تشرب الجرعة أم ترفضها؟");
+      state.currentAction = "addon-potion-choice";
+      $("actionTargets").innerHTML = "";
+      ["drink", "refuse"].forEach(function (choice) {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "target-btn";
+        button.innerHTML = "<span>" + (choice === "drink" ? "🥤 أشرب الجرعة" : "✋ أرفض الجرعة") + "</span><span>›</span>";
+        button.addEventListener("click", function () {
+          addon.potionChoices[target.id] = choice;
+          if (index + 1 < targets.length) ask(index + 1);
+          else {
+            potion.ready = true;
+            beginPotionChoices(next);
+          }
+        });
+        $("actionTargets").appendChild(button);
+      });
+      showScreen("actionScreen");
+    }
+    ask(0);
+  }
+
+  window.beginNight = function () {
+    const addon = addOn();
+    const infection = addon.infectionQueue.find(function (entry) { return entry.phase === "new"; });
+    if (infection) {
+      const target = getPlayer(infection.targetId);
+      infection.phase = "handled";
+      if (!target || !target.alive) return window.beginNight();
+      setupActionFrame(target, "🦠", "رسالة الطاعون", "أنت مصاب. اختر الموت أو نقل العدوى إلى لاعب آخر.");
+      state.currentAction = "addon-infection";
+      const container = $("actionTargets");
+      const die = document.createElement("button");
+      die.type = "button"; die.className = "target-btn";
+      die.innerHTML = "<span>☠️ أقتل نفسي</span><span>›</span>";
+      die.addEventListener("click", function () {
+        addon.delayedDeaths[state.night] = addon.delayedDeaths[state.night] || [];
+        addon.delayedDeaths[state.night].push({ targetId: target.id, source: "الطاعون", pierce: true });
+        baseBeginNight();
+      });
+      const spread = document.createElement("button");
+      spread.type = "button"; spread.className = "target-btn";
+      spread.innerHTML = "<span>🦠 أنقل العدوى</span><span>›</span>";
+      spread.addEventListener("click", function () {
+        picker(target, { kind: "infection-spread", title: "نقل العدوى", description: "اختر شخصًا آخر لإصابته.", allowSelf: false,
+          targets: alivePlayers().filter(function (p) { return p.id !== target.id; }) });
+      });
+      container.append(die, spread);
+      showScreen("actionScreen");
+      return;
+    }
+    baseBeginNight();
+  };
+
+  window.resolveNight = function () {
+    const addon = addOn();
+    beginPotionChoices(function () {
+      prepareNight();
+      baseResolveNight();
+    });
+  };
+
+  window.finishNightResult = function () {
+    applyAddonNightEffects();
+    const addon = addOn();
+    const oldText = $("nightResultText").innerHTML;
+    baseFinishNightResult();
+    if (state.nightAddonNotices && state.nightAddonNotices.length && $("nightResultText")) {
+      $("nightResultText").innerHTML += "<br><br><div class=\"addon-notices\">" + state.nightAddonNotices.join("<br>") + "</div>";
+      state.nightAddonNotices = [];
+    }
+  };
+
+  function showDeathAbility(next) {
+    const addon = addOn();
+    const item = addon.deathQueue.shift();
+    if (!item) { next(); return; }
+    const owner = getPlayer(item.ownerId);
+    if (!owner) { showDeathAbility(next); return; }
+    const kind = item.kind;
+    picker(owner, {
+      kind: "after-" + kind,
+      title: kind === "ghoul" ? "قدرة الغول بعد الموت" : "قدرة الحاقد قبل الخروج",
+      description: kind === "ghoul" ? "اختر لاعبًا لإزالة كل حماياته." : "اختر لاعبًا لقتله قبل خروجك.",
+      allowSelf: false,
+      targets: alivePlayers()
+    });
+    addon.afterDeathCallback = function () { showDeathAbility(next); };
+  }
+
+  function startDiscussionExt() {
+    const addon = addOn();
+    const continueDiscussion = function () {
+      const silenced = alivePlayers().filter(function (player) {
+        return (addon.silencedUntil && addon.silencedUntil[player.id] === state.night) ||
+          (addon.silencedPermanent && addon.silencedPermanent[player.id]);
+      });
+      if (silenced.length) {
+        showModal("🤐 منع الكلام", silenced.map(function (p) { return escapeHTML(p.name); }).join("، ") + " ممنوع من الكلام خلال هذا النقاش.", "🤐", baseStartDiscussion, true);
+      } else baseStartDiscussion();
+    };
+    if (addon.deathQueue.length) showDeathAbility(continueDiscussion);
+    else continueDiscussion();
+  }
+
+  function voteWeight(voter) {
+    const addon = addOn();
+    if ((addon.zeroVoteUntil[voter.id] || 0) >= state.night) return 0;
+    let weight = 1 + (addon.voteBonus[voter.id] || 0);
+    const rs = roleState(voter);
+    if (voter.role === "merchant" && rs.doubleVoteNight === state.night) weight = 2;
+    if (voter.role === "king" && !rs.voteUsed) weight = 2;
+    if (voter.role === "prince" && !rs.voteUsed) weight = 2;
+    return weight;
+  }
+
+  function canVote(voter) {
+    const addon = addOn();
+    return voter.alive && !addon.permanentNoVote[voter.id] &&
+      (addon.noVoteUntil[voter.id] || 0) < state.night;
+  }
+
+  function renderVotingTargetsExt(voter) {
+    const container = $("votingTargets");
+    const addon = addOn();
+    const targets = alivePlayers().filter(function (player) { return player.id !== voter.id; });
+    let challenge = "";
+    if (voter.role === "farmer") {
+      const first = 2 + Math.floor(Math.random() * 8);
+      const second = 1 + Math.floor(Math.random() * 8);
+      addon.farmerQuestion = { voterId: voter.id, answer: first + second };
+      challenge = '<label class="farm-challenge">🌾 احسب ' + first + " + " + second +
+        ': <input id="farmerAnswer" inputmode="numeric" type="number"></label>';
+    }
+    container.innerHTML = challenge + targets.map(function (player) {
+      const avatar = player.avatar
+        ? '<img src="' + escapeHTML(player.avatar) + '" alt="" class="target-avatar">'
+        : '<span class="target-avatar target-avatar-empty">👤</span>';
+      return '<button class="target-btn" data-vote-id="' + player.id + '" type="button"><span class="target-player-info">' +
+        avatar + "<span>" + escapeHTML(player.name) + "</span></span><span>🗳️</span></button>";
+    }).join("") + '<button class="target-btn" data-vote-id="SKIP" type="button"><span>⏭️ تخطي التصويت</span><span>—</span></button>';
+    container.onclick = function (event) {
+      const button = event.target.closest(".target-btn");
+      if (!button || state.voteLocked) return;
+      container.querySelectorAll(".target-btn").forEach(function (b) { b.classList.remove("selected"); });
+      button.classList.add("selected");
+      state.selectedVote = button.dataset.voteId;
+      $("confirmVoteBtn").classList.remove("hidden");
+    };
+  }
+
+  function startVotingExt() {
+    clearInterval(state.discussionInterval);
+    state.discussionInterval = null;
+    state.votingOrder = alivePlayers().filter(canVote);
+    state.votingIndex = 0;
+    state.votes = {};
+    state.selectedVote = null;
+    state.votingResolved = false;
+    state.voteLocked = false;
+    if (!state.votingOrder.length) {
+      $("voteResultText").innerHTML = "⚖️ لا يملك أي لاعب حي حق التصويت في هذه الجولة.";
+      showScreen("voteResultScreen");
+      return;
+    }
+    showNextVoterExt();
+  }
+
+  function showNextVoterExt() {
+    if (state.votingIndex >= state.votingOrder.length) { resolveVotesExt(); return; }
+    const voter = state.votingOrder[state.votingIndex];
+    state.currentPlayer = voter;
+    state.selectedVote = null;
+    state.voteLocked = false;
+    $("votingPlayerName").textContent = voter.name;
+    setAvatarElement($("votingPlayerAvatar"), voter);
+    renderVotingTargetsExt(voter);
+    $("confirmVoteBtn").classList.add("hidden");
+    $("confirmVoteBtn").removeAttribute("disabled");
+    showScreen("votingScreen");
+  }
+
+  function confirmVoteExt() {
+    if (state.voteLocked || !state.selectedVote) return;
+    const voter = state.currentPlayer;
+    if (!voter || !canVote(voter)) return;
+    const addon = addOn();
+    if (voter.role === "farmer") {
+      const answer = Number($("farmerAnswer") && $("farmerAnswer").value);
+      if (answer !== addon.farmerQuestion.answer) {
+        showToast("حل العملية أولًا ليُحتسب تصويت الفلاح.", "error");
+        return;
+      }
+    }
+    if (state.selectedVote !== "SKIP") {
+      const target = getPlayer(state.selectedVote);
+      if (!target || !target.alive || target.id === voter.id) { showToast("هذا الهدف غير متاح.", "error"); return; }
+    }
+    state.voteLocked = true;
+    $("confirmVoteBtn").setAttribute("disabled", "disabled");
+    state.votes[voter.id] = { id: state.selectedVote, weight: voteWeight(voter) };
+    const rs = roleState(voter);
+    if (voter.role === "king" || voter.role === "prince") {
+      rs.voteUsed = true;
+      addon.permanentNoVote[voter.id] = true;
+      if (voter.role === "king" && !addon.revealedPublic[voter.id]) {
+        addon.revealedPublic[voter.id] = true;
+        showToast("👑 انكشف الملك للجميع وصوته بوزنين هذه الجولة.", "success");
+      }
+    }
+    delete addon.voteBonus[voter.id];
+    audioSystem.playVotingSound();
+    state.votingIndex++;
+    if (state.votingIndex >= state.votingOrder.length) resolveVotesExt();
+    else showPassScreen(state.votingOrder[state.votingIndex], "voting");
+  }
+
+  function resolveVotesExt() {
+    state.votingResolved = true;
+    const counts = {};
+    let skip = 0;
+    Object.values(state.votes).forEach(function (vote) {
+      if (vote.id === "SKIP") skip += vote.weight;
+      else counts[vote.id] = (counts[vote.id] || 0) + vote.weight;
+    });
+    let eliminatedId = null;
+    const highest = Math.max(skip, 0, ...Object.values(counts));
+    const winners = Object.keys(counts).filter(function (id) { return counts[id] === highest; });
+    if (skip === highest && highest > 0) winners.push("SKIP");
+    if (winners.length === 1 && winners[0] !== "SKIP") eliminatedId = winners[0];
+    if (!eliminatedId) {
+      $("voteResultText").innerHTML = "⚖️ لم يتم إخراج أي لاعب؛ حدث تعادل أو حصل التخطي على أعلى الأصوات.";
+      showScreen("voteResultScreen");
+      return;
+    }
+    const eliminated = getPlayer(eliminatedId);
+    const addon = addOn();
+    if (eliminated.role === "viking") {
+      const rs = roleState(eliminated);
+      rs.voteMarks = (rs.voteMarks || 0) + 1;
+      if (rs.voteMarks < 2) {
+        $("voteResultText").innerHTML = "🛡️ صوّتت القرية لإخراج " + escapeHTML(eliminated.name) + "، لكنه الفايكنغ ونجا. يلزم تصويت ناجح ثانٍ.";
+        showScreen("voteResultScreen");
+        return;
+      }
+    }
+    if (eliminated.role === "sultan") {
+      addon.permanentNoVote[eliminated.id] = true;
+      $("voteResultText").innerHTML = "🫅 حاولت القرية إعدام " + escapeHTML(eliminated.name) + "، لكنه السلطان ونجا وفقد حق التصويت.";
+      showScreen("voteResultScreen");
+      return;
+    }
+    if (eliminated.role === "phoenix") handlePhoenixDeath(eliminated);
+    else eliminated.alive = false;
+    if (eliminated.role === "cursed" || eliminated.role === "caesar") {
+      Object.keys(state.votes).forEach(function (voterId) {
+        if (state.votes[voterId].id === eliminated.id) addon.zeroVoteUntil[voterId] = state.night + 1;
+      });
+    }
+    queueDeathEffects([eliminated], "vote");
+    if (eliminated.role === "hunter") { state.hunterQueue = [eliminated]; state.hunterMode = "vote"; }
+    if (eliminated.role === "samurai") { state.samuraiQueue = [eliminated]; state.samuraiMode = true; }
+    let detail = "💀 خرج من اللعبة: <strong>" + escapeHTML(eliminated.name) + "</strong>.";
+    if (eliminated.role === "hunter") detail += "<br><br>يستطيع الصياد اختيار لاعب ليخرج معه.";
+    if (eliminated.role === "samurai") detail += "<br><br>لديه مبارزة أخيرة.";
+    if (eliminated.role === "phoenix") detail += "<br><br>ستعود العنقاء وفق قواعدها.";
+    $("voteResultText").innerHTML = detail;
+    showScreen("voteResultScreen");
+  }
+
+  function finishAfterDeathAction() {
+    const addon = addOn();
+    const callback = addon.afterDeathCallback;
+    addon.afterDeathCallback = null;
+    addon.action = null;
+    if (callback) callback();
+  }
+
+  function handleSpecialConfirm(event) {
+    const action = addOn().action;
+    if (state.currentAction === "seer" && state.selectedTarget && state.currentPlayer) {
+      event.preventDefault(); event.stopImmediatePropagation();
+      const player = state.currentPlayer;
+      const target = getPlayer(state.selectedTarget);
+      if (!target || !target.alive) return;
+      const shown = revealRoleTo(player, target, "seer");
+      showModal("🔮 كشف العرّاف", escapeHTML(target.name) + " دوره هو: " + shown.icon + " " + shown.name, "🔮", function () {
+        state.actionLocked = false; finishNightTurn();
+      }, true);
+      return;
+    }
+    if (!action) return;
+    event.preventDefault(); event.stopImmediatePropagation();
+    if (action.kind === "infection-spread") {
+      const target = getPlayer(action.targets[0]);
+      if (target) addOn().infectionQueue.push({ targetId: target.id, phase: "new" });
+      addOn().action = null;
+      baseBeginNight();
+      return;
+    }
+    if (action.kind === "after-ghoul" || action.kind === "after-resentful") {
+      const target = getPlayer(action.targets[0]);
+      if (target) {
+        if (action.kind === "after-ghoul") {
+          delete addOn().protectionUntil[target.id];
+          delete addOn().noConvertUntil?.[target.id];
+          addOn().notices.push("👹 أزال الغول حمايات " + escapeHTML(target.name) + ".");
+        } else {
+          target.alive = false;
+          addOn().notices.push("😠 قتل الحاقد " + escapeHTML(target.name) + " قبل خروجه.");
+        }
+      }
+      finishAfterDeathAction();
+      return;
+    }
+    commitCustomAction();
+  }
+
+  function interceptClick(event) {
+    const target = event.target.closest && event.target.closest("button");
+    if (!target) return;
+    if (target.id === "confirmActionBtn") {
+      handleSpecialConfirm(event);
+      return;
+    }
+    if (target.id === "skipActionBtn" && addOn().action) {
+      event.preventDefault(); event.stopImmediatePropagation();
+      addOn().action = null; state.currentAction = "skip"; finishNightTurn();
+      return;
+    }
+    if (target.id === "startDiscussionBtn") {
+      event.preventDefault(); event.stopImmediatePropagation();
+      startDiscussionExt();
+      return;
+    }
+    if (target.id === "startVotingBtn") {
+      event.preventDefault(); event.stopImmediatePropagation();
+      startVotingExt();
+      return;
+    }
+    if (target.id === "confirmVoteBtn") {
+      event.preventDefault(); event.stopImmediatePropagation();
+      confirmVoteExt();
+      return;
+    }
+    if (target.id === "continueAfterVoteBtn" && addOn().deathQueue.length) {
+      event.preventDefault(); event.stopImmediatePropagation();
+      showDeathAbility(function () {
+        if (typeof checkWinner === "function" && checkWinner()) return;
+        baseContinueAfterVote();
+      });
+      return;
+    }
+    if (target.id === "startGameBtn") {
+      event.preventDefault(); event.stopImmediatePropagation();
+      state[ADDON_KEY] = null;
+      baseStartGame();
+      return;
+    }
+    if (target.id === "newGameBtn") {
+      event.preventDefault(); event.stopImmediatePropagation();
+      baseNewGame();
+      setTimeout(addRoleCards, 0);
+    }
+  }
+
+  function buildRandomRolesExt() {
+    const selected = getSelectedRoles().filter(function (id) { return ROLES[id]; });
+    const count = state.players.length;
+    const slots = Math.min(typeof getMercenarySlotCount === "function" ? getMercenarySlotCount(count) : getWolfCount(count), count - 1);
+    const evil = selected.filter(function (id) { return ROLES[id].team === "wolves" && id !== "turned"; });
+    const village = selected.filter(function (id) { return ROLES[id].team === "village"; });
+    const roles = ["werewolf"];
+    for (let i = 1; i < slots; i++) roles.push(randomFrom(evil.length ? evil : ["werewolf"]));
+    while (roles.length < count) roles.push(randomFrom(village.length ? village : ["villager"]));
+    return shuffle(roles);
+  }
+
+  function buildManualRolesExt() {
+    const roles = state.players.map(function (player) { return state.manualRoles[player.id]; });
+    if (roles.some(function (role) { return !role || !ROLES[role]; })) {
+      showToast("اختر دور كل لاعب أولًا.", "error");
+      return null;
+    }
+    const evil = roles.filter(function (role) { return ROLES[role].team === "wolves"; }).length;
+    if (evil < 1 || evil >= roles.length) {
+      showToast("يجب أن تضم اللعبة فريق القتلة وفريق القرية.", "error");
+      return null;
+    }
+    return roles;
+  }
+
+  window.buildRandomRoles = buildRandomRolesExt;
+  window.buildManualRoles = buildManualRolesExt;
+  window.startVoting = startVotingExt;
+  window.renderVotingTargets = renderVotingTargetsExt;
+  window.showNextVoter = showNextVoterExt;
+
+  document.addEventListener("click", function (event) {
+    const button = event.target.closest && event.target.closest("#revealRoleBtn");
+    const player = state.currentPlayer;
+    if (!button || !player || player.role !== "disguised") return;
+    const rs = roleState(player);
+    if (!rs.fakeRole) {
+      const options = Object.keys(ROLES).filter(function (id) {
+        return ROLES[id].team === "village" && id !== "turned";
+      });
+      rs.fakeRole = randomFrom(options.length ? options : ["villager"]);
+    }
+    setTimeout(function () {
+      if ($("roleDescription")) {
+        $("roleDescription").textContent =
+          getRole(player).description + " هويتك الوهمية للعرّاف: " +
+          ROLES[rs.fakeRole].icon + " " + ROLES[rs.fakeRole].name + ".";
+      }
+    }, 0);
+  });
+
+  document.addEventListener("click", interceptClick, true);
+  addRoleCards();
+})();
 
 
