@@ -6481,9 +6481,7 @@ function resolveVotes() {
   state.voteLocked =
     true;
 
-
   const counts = {};
-
 
   Object.values(
     state.votes
@@ -6509,7 +6507,6 @@ function resolveVotes() {
     }
   );
 
-
   const skipCount =
     Object.values(
       state.votes
@@ -6518,16 +6515,13 @@ function resolveVotes() {
         vote === "SKIP"
     ).length;
 
-
   const candidates =
     Object.entries(
       counts
     );
 
-
   let eliminatedId =
     null;
-
 
   if (
     candidates.length > 0
@@ -6542,7 +6536,6 @@ function resolveVotes() {
         skipCount
       );
 
-
     const winners =
       candidates
         .filter(
@@ -6554,7 +6547,6 @@ function resolveVotes() {
             id
         );
 
-
     if (
       skipCount ===
       highest
@@ -6564,7 +6556,6 @@ function resolveVotes() {
         "SKIP"
       );
     }
-
 
     if (
       winners.length === 1 &&
@@ -6576,6 +6567,9 @@ function resolveVotes() {
     }
   }
 
+  /* =======================================================
+     NO ELIMINATION
+     ======================================================= */
 
   if (!eliminatedId) {
 
@@ -6598,10 +6592,8 @@ function resolveVotes() {
     return;
   }
 
-
   const eliminated =
     getPlayer(eliminatedId);
-
 
   if (
     !eliminated ||
@@ -6614,7 +6606,6 @@ function resolveVotes() {
 
     return;
   }
-
 
   /* =======================================================
      PHOENIX
@@ -6629,7 +6620,6 @@ function resolveVotes() {
       handlePhoenixDeath(
         eliminated
       );
-
 
     if (revivedLater) {
 
@@ -6648,26 +6638,18 @@ function resolveVotes() {
 
           <br><br>
 
-          دوره كان:
-
-          🦅 العنقاء
-
-          <br><br>
-
-          ✨ لقد استُخدمت قدرتها.
+          ✨ لقد استُخدمت قدرة هذا اللاعب.
 
           <br>
 
-          ستعود إلى الحياة في الصباح التالي.
+          سيعود إلى الحياة في الصباح التالي.
         `;
       }
 
-
       showToast(
-        "🦅 العنقاء ستعود في الصباح التالي!",
+        "🦅 سيعود اللاعب في الصباح التالي!",
         "success"
       );
-
 
       showScreen(
         "voteResultScreen"
@@ -6675,12 +6657,12 @@ function resolveVotes() {
 
       return;
     }
+
   } else {
 
     eliminated.alive =
       false;
   }
-
 
   /* =======================================================
      SAMURAI
@@ -6706,16 +6688,9 @@ function resolveVotes() {
 
         <br><br>
 
-        دوره كان:
-
-        ⚔️ الساموراي
-
-        <br><br>
-
         لديه مبارزة أخيرة قبل انتهاء دوره.
       `;
     }
-
 
     state.samuraiQueue =
       [eliminated];
@@ -6723,14 +6698,12 @@ function resolveVotes() {
     state.samuraiMode =
       true;
 
-
     showScreen(
       "voteResultScreen"
     );
 
     return;
   }
-
 
   /* =======================================================
      HUNTER
@@ -6744,7 +6717,9 @@ function resolveVotes() {
     if ($("voteResultText")) {
 
       $("voteResultText").innerHTML = `
-        💀 خرج
+        💀 خرج من اللعبة:
+
+        <br><br>
 
         <strong>
           ${escapeHTML(
@@ -6752,21 +6727,17 @@ function resolveVotes() {
           )}
         </strong>
 
-        من اللعبة.
-
         <br><br>
 
-        لكنه صياد، لذلك لديه فرصة أخيرة.
+        لديه فرصة أخيرة قبل انتهاء دوره.
       `;
     }
-
 
     state.hunterQueue =
       [eliminated];
 
     state.hunterMode =
       "vote";
-
 
     showScreen(
       "voteResultScreen"
@@ -6775,10 +6746,9 @@ function resolveVotes() {
     return;
   }
 
-
-  const role =
-    getRole(eliminated);
-
+  /* =======================================================
+     NORMAL ELIMINATION
+     ======================================================= */
 
   if ($("voteResultText")) {
 
@@ -6795,26 +6765,14 @@ function resolveVotes() {
 
       <br><br>
 
-      دوره كان:
-
-      ${role?.icon || "❓"}
-      ${escapeHTML(
-        role?.name || "غير معروف"
-      )}
+      تم إخراجه من اللعبة.
     `;
   }
-
 
   showScreen(
     "voteResultScreen"
   );
 }
-
-
-/* =========================================================
-   CONTINUE AFTER VOTE
-   ========================================================= */
-
 function continueAfterVote() {
 
   /*
@@ -7167,8 +7125,8 @@ function showWinner(
     $("winnerTitle")
       .textContent =
       team === "المرتزقة"
-        ? "فوز المرتزقة"
-        : "فوز القرية";
+        ? "فاز المرتزقة"
+        : "فازت القرية";
   }
 
 
@@ -7253,7 +7211,7 @@ function newGame() {
 
     werewolf: true,
 
-    samurai: false,
+    samurai: true,
 
     doctor: true,
 
@@ -7263,13 +7221,13 @@ function newGame() {
 
     hunter: true,
 
-    phoenix: false,
+    phoenix: true,
 
-    philosopher: false,
+    philosopher: true,
 
-    trapper: false,
+    trapper: true,
 
-    villager: false
+    villager: true
   };
 
 
