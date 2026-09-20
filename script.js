@@ -143,14 +143,15 @@ const state = {
 
   activeRoles: {
     werewolf: true,
-    samurai: true,
+    silent: false,
+    samurai: false,
     doctor: true,
-    seer: true,
+    seer: false,
     witch: true,
     hunter: true,
-    phoenix: true,
-    philosopher: true,
-    trapper: true,
+    phoenix: false,
+    philosopher: false,
+    trapper: false,
     villager: true
   },
 
@@ -9715,15 +9716,15 @@ const RARITY_CONFIG = {
  * الكلمات المسموحة: شائع، نادر، استثنائي، خرافي، أسطوري
  */
 const ROLE_RARITIES = {
-  werewolf: "أسطوري",
-  silent: "خرافي",
+  werewolf: "خرافي",
+  silent: "شائع",
   samurai: "خرافي",
   doctor: "نادر",
-  seer: "استثنائي",
-  witch: "استثنائي",
+  seer: "أسطوري",
+  witch: "خرافي",
   hunter: "نادر",
-  phoenix: "أسطوري",
-  philosopher: "نادر",
+  phoenix: "خرافي",
+  philosopher: "استثنائي",
   trapper: "استثنائي",
   villager: "شائع"
 };
@@ -9834,6 +9835,96 @@ if (document.readyState === "loading") {
   document.addEventListener("DOMContentLoaded", installRoleRarities);
 } else {
   installRoleRarities();
+}
+/* =========================================================
+   ترتيب الشخصيات حسب الندرة
+   الصق هذا الكود في آخر ملف JavaScript،
+   بعد كود نظام الندرة وتقسيم الفرق.
+   ========================================================= */
+
+
+/* الترتيب من الأعلى إلى الأقل ندرة. */
+/* الترتيب من الشائع إلى الأسطوري. */
+const RARITY_ORDER = {
+  "أسطوري": 1,
+  "خرافي": 2,
+  "استثنائي": 3,
+  "نادر": 4,
+  "شائع": 5
+};
+
+
+function sortRoleCardsByRarity() {
+
+  const roleLists = [
+    $("mercenaryRoleOptions"),
+    $("villageRoleOptions"),
+    $("roleOptions")
+  ].filter(list => list);
+
+  roleLists.forEach(list => {
+
+    /* إذا كانت الفرق مفصولة، لا نرتب الحاوية الأم. */
+    if (list.id === "roleOptions" && $("mercenaryRoleOptions")) {
+      return;
+    }
+
+    const cards = [
+      ...list.querySelectorAll(":scope > .role-option")
+    ];
+
+    cards
+      .sort((first, second) => {
+
+        const firstRarity =
+          RARITY_ORDER[ROLE_RARITIES[first.dataset.role]] || 0;
+
+        const secondRarity =
+          RARITY_ORDER[ROLE_RARITIES[second.dataset.role]] || 0;
+
+        if (firstRarity !== secondRarity) {
+          return secondRarity - firstRarity;
+          return firstRarity - secondRarity;
+        }
+
+        const firstName = ROLES[first.dataset.role]?.name || "";
+        const secondName = ROLES[second.dataset.role]?.name || "";
+
+        return firstName.localeCompare(secondName, "ar");
+
+      })
+      .forEach(card => list.appendChild(card));
+
+  });
+
+}
+
+
+/* تستخدمها إذا غيّرت الندرة أثناء عمل اللعبة. */
+function setRoleRarity(roleId, rarityName) {
+
+  if (!ROLES[roleId] || !RARITY_CONFIG[rarityName]) {
+    return;
+  }
+
+  ROLE_RARITIES[roleId] = rarityName;
+  applyRoleRarities();
+  sortRoleCardsByRarity();
+
+}
+
+
+function installRoleRaritySort() {
+
+  sortRoleCardsByRarity();
+
+}
+
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", installRoleRaritySort);
+} else {
+  installRoleRaritySort();
 }
 
 
