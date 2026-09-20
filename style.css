@@ -4829,3 +4829,86 @@ button:active {
   box-shadow: 0 0 16px color-mix(in srgb, var(--rarity-color) 20%, transparent);
 }
 
+/* =========================================================
+   لون الندرة على الكارت كاملًا
+   الصق هذا الكود في آخر ملف CSS، بعد كود الندرة السابق.
+   ========================================================= */
+
+.role-option.has-rarity {
+  background:
+    linear-gradient(
+      145deg,
+      var(--rarity-color) 0%,
+      color-mix(in srgb, var(--rarity-color) 48%, #111018) 48%,
+      #100d14 100%
+    ) !important;
+
+  border: 2px solid var(--rarity-color) !important;
+
+  box-shadow:
+    0 14px 30px rgba(0, 0, 0, 0.42),
+    0 0 26px var(--rarity-color),
+    inset 0 1px 0 rgba(255, 255, 255, 0.22) !important;
+}
+
+.role-option.has-rarity:hover,
+.role-option.has-rarity.active,
+.role-option.has-rarity.active:hover {
+  background:
+    linear-gradient(
+      145deg,
+      var(--rarity-color) 0%,
+      color-mix(in srgb, var(--rarity-color) 65%, #100d14) 56%,
+      #100d14 100%
+    ) !important;
+
+  border-color: #ffffff !important;
+
+  box-shadow:
+    0 16px 34px rgba(0, 0, 0, 0.46),
+    0 0 38px var(--rarity-color),
+    inset 0 0 30px color-mix(in srgb, var(--rarity-color) 35%, transparent) !important;
+}
+
+.role-option.has-rarity .role-option-glow {
+  background:
+    radial-gradient(
+      circle,
+      color-mix(in srgb, var(--rarity-color) 75%, transparent),
+      transparent 65%
+    ) !important;
+}
+
+.role-option.has-rarity.active .role-option-glow {
+  opacity: 0.9;
+}
+
+.role-option.has-rarity .role-option-icon,
+.role-option.has-rarity.active .role-option-icon {
+  background:
+    linear-gradient(
+      145deg,
+      color-mix(in srgb, var(--rarity-color) 58%, #1a1820),
+      #141118
+    ) !important;
+
+  border: 1px solid rgba(255, 255, 255, 0.5) !important;
+
+  box-shadow:
+    inset 0 0 20px color-mix(in srgb, var(--rarity-color) 35%, transparent),
+    0 0 18px color-mix(in srgb, var(--rarity-color) 55%, transparent) !important;
+}
+
+.role-option.has-rarity.active::after {
+  background: var(--rarity-color) !important;
+  color: #ffffff !important;
+  box-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.4),
+    0 0 16px var(--rarity-color) !important;
+}
+
+.role-option.has-rarity .role-option-info small {
+  color: #ffffff !important;
+  text-shadow: 0 1px 5px rgba(0, 0, 0, 0.8) !important;
+}
+
